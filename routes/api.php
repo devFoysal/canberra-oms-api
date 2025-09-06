@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\{
     ProductController,
     OrderController,
     SalesRepresentativeController,
+    PaymentController,
 };
 
 // API Version 1 routes
@@ -78,13 +79,22 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [ProductController::class, 'destroy']);
         });
 
-         // Order routes
+        // Order routes
         Route::prefix('orders')->group(function () {
             Route::post('/', [OrderController::class, 'store']);
             Route::get('/', [OrderController::class, 'index']);
             Route::get('/{id}', [OrderController::class, 'show']);
             Route::post('/{id}', [OrderController::class, 'update']);
             Route::delete('/{id}', [OrderController::class, 'destroy']);
+        });
+
+        // Payment routes
+        Route::prefix('payments')->group(function () {
+            Route::post('/', [PaymentController::class, 'store']);
+            Route::get('/', [PaymentController::class, 'index']);
+            // Route::get('/{id}', [PaymentController::class, 'show']);
+            // Route::post('/{id}', [PaymentController::class, 'update']);
+            // Route::delete('/{id}', [PaymentController::class, 'destroy']);
         });
 
         // Add more protected routes here

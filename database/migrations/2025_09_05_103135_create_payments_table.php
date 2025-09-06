@@ -16,7 +16,7 @@ return new class extends Migration
             $table->enum('method', ['cash', 'bank', 'mfs', 'card'])->nullable();
             $table->string('amount')->nullable();
             $table->string('currency', 10)->default('BDT');
-            $table->string('details')->json()->nullable();
+            $table->json('details')->nullable();
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->foreignId('customer_id')->constrained()->onDelete('cascade');
             $table->enum('status', ['pending', 'processing', 'paid', 'failed'])->default('pending');

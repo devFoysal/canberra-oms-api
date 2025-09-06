@@ -129,7 +129,7 @@ class OrderController extends Controller
 
             $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
 
-            return ResponseHelper::success(new OrderResource($order), 'Order updated successfully');
+            return ResponseHelper::success(new OrderResource($order), 'Order confirmed successfully');
 
         } catch (\Exception $e) {
             DB::rollBack();
