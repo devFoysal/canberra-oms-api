@@ -67,7 +67,7 @@ class OrderController extends Controller
 
             DB::commit();
 
-            $order->with(['customer', 'salesRep', 'items.product:id,thumbnail'])->fresh();
+            $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
 
             return ResponseHelper::success(new OrderResource($order), 'Order created successfully', 201);
 
