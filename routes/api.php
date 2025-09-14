@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\{
     ProductController,
     OrderController,
     SalesRepresentativeController,
+    InvoiceController,
     PaymentController,
 };
 
@@ -86,6 +87,16 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [OrderController::class, 'show']);
             Route::post('/{id}', [OrderController::class, 'update']);
             Route::delete('/{id}', [OrderController::class, 'destroy']);
+        });
+
+        // Invoice routes
+        Route::prefix('invoices')->group(function () {
+            Route::post('/', [InvoiceController::class, 'store']);
+            Route::get('/', [InvoiceController::class, 'index']);
+            Route::get('/{id}', [InvoiceController::class, 'show']);
+            Route::get('/{id}/download', [InvoiceController::class, 'downloadInvoice']);
+            Route::post('/{id}', [InvoiceController::class, 'update']);
+            Route::delete('/{id}', [InvoiceController::class, 'destroy']);
         });
 
         // Payment routes

@@ -96,21 +96,11 @@ class ProductController extends Controller
                 );
             }
 
-            // Handle cover image upload (new product)
-            if ($request->hasFile('coverImage')) {
-                $productData['coverImage'] = FileHelper::uploadImages(
-                    $request->file('coverImage'),
-                    'products',
-                    ['optimize' => true]
-                );
-            }
-
             // Merge remaining fields
             $productData = array_merge($productData, [
                 'sku' => generate_sku('PROD'),
                 'name' => $request->name,
                 'short_description' => $request->shortDescription,
-                'description' => $request->description,
                 'purchase_price' => $request->purchasePrice,
                 'sale_price' => $request->salePrice,
                 'stock' => $request->stock,
@@ -201,21 +191,10 @@ class ProductController extends Controller
                 );
             }
 
-            // Update cover image if provided (use updateImage)
-            if ($request->hasFile('coverImage')) {
-                $productData['coverImage'] = FileHelper::updateImage(
-                    $request->file('coverImage'),
-                    $product->coverImage,
-                    'products',
-                    ['optimize' => true]
-                );
-            }
-
             // Merge remaining fields
             $productData = array_merge($productData, [
                 'name' => $request->name,
                 'short_description' => $request->shortDescription,
-                'description' => $request->description,
                 'purchase_price' => $request->purchasePrice,
                 'sale_price' => $request->salePrice,
                 'stock' => $request->stock,

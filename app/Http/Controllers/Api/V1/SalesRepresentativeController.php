@@ -71,9 +71,11 @@ class SalesRepresentativeController extends Controller
 
     public function show($id)
     {
-        $salesRepresentative = SalesRepresentative::find($id);
-        if (!$salesRepresentative) return ResponseHelper::error('SalesRepresentative not found', 404);
-        return ResponseHelper::success(new SalesRepresentativeResource($salesRepresentative), 'Sales Representative retrieved successfully');
+        $salesRepresentative = User::where('id', $id)->with('salesRepresentative')->first();
+
+        if (!$salesRepresentative) return ResponseHelper::error('Sales representative not found', 404);
+
+        return ResponseHelper::success(new SalesRepresentativeResource($salesRepresentative), 'Sales representative retrieved successfully');
     }
 
     public function update(EditSalesRepresentativeRequest $request, $id)

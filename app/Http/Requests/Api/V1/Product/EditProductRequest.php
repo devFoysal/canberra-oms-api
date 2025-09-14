@@ -23,10 +23,8 @@ class EditProductRequest extends FormRequest
     {
         return [
             'name' => 'sometimes|string|max:255',
-            'thumbnail' => 'sometimes|file|image|mimes:jpg,jpeg,png,gif,webp|max:2048', // max 2MB
-            'coverImage' => 'nullable|file|image|mimes:jpg,jpeg,png,gif,webp|max:4096', // max 4MB
+            'thumbnail' => 'nullable|max:2048', // max 2MB
             'shortDescription' => 'nullable|string',
-            'description' => 'nullable|string',
             'purchasePrice' => 'nullable|numeric|min:0',
             'salePrice' => 'nullable|numeric|min:0',
             'stock' => 'nullable|integer|min:0',

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Api\V1\Payment;
+namespace App\Http\Requests\Api\V1\Invoice;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class EditPaymentRequest extends FormRequest
+class CreateInvoiceRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,11 +22,7 @@ class EditPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'orderId'      => 'required|exists:orders,id',
-            'invoiceId'    => 'required|exists:invoices,id',
-            'method'       => 'required|string',
-            'amount'       => 'required|numeric|min:1',
-            'details'      => 'required|array',
+            'orderId'       => 'required|exists:orders,id',
         ];
     }
 }

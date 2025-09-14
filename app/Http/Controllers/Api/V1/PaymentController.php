@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Payment;
 use App\Models\Order;
+use App\Models\Invoice;
 use App\Helpers\{
     ResponseHelper,
     PaymentHelper
@@ -35,8 +36,10 @@ class PaymentController extends Controller
         $data = $request->validated();
 
         $order = Order::find($data['orderId']);
-
         if (!$order) return ResponseHelper::error('Order not found', 404);
+
+        $invoice = Invoice::find($data['invoiceId']);
+        if (!$invoice) return ResponseHelper::error('Invoice not found', 404);
 
         DB::beginTransaction();
 
@@ -44,6 +47,7 @@ class PaymentController extends Controller
             // Prepare payment data
             $paymentData = [
                 'order_id' => $order->id,
+                'invoice_id' => $invoice->id,
                 'customer_id' => $order->customer_id,
                 'method' => $data['method'],
                 'amount' => $data['amount'],
@@ -56,6 +60,9 @@ class PaymentController extends Controller
             if($payment){
                 $order->payment_status = 'paid';
                 $order->update();
+
+                $invoice->status = 'paid';
+                $invoice->update();
             }
 
             DB::commit();

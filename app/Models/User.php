@@ -67,4 +67,19 @@ class User extends Authenticatable
     {
         return $this->hasOne(SalesRepresentative::class);
     }
+
+    public function salesOrders()
+    {
+        return $this->hasMany(Order::class, 'sales_rep_id');
+    }
+
+    public function createdInvoices()
+    {
+        return $this->hasMany(Invoice::class, 'created_by_id');
+    }
+
+    public function modifiedInvoices()
+    {
+        return $this->hasMany(Invoice::class, 'modified_by_id');
+    }
 }

@@ -26,7 +26,7 @@ class OrderController extends Controller
 {
     public function index()
     {
-        $orders = Order::with(['customer', 'salesRep', 'items.product:id,thumbnail'])->get();
+        $orders = Order::with(['customer', 'salesRep', 'items.product:id,thumbnail'])->orderBy('id', 'desc')->get();
         return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
     }
 
@@ -129,7 +129,7 @@ class OrderController extends Controller
 
             $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
 
-            return ResponseHelper::success(new OrderResource($order), 'Order confirmed successfully');
+            return ResponseHelper::success(new OrderResource($order), 'Order confirmed');
 
         } catch (\Exception $e) {
             DB::rollBack();
