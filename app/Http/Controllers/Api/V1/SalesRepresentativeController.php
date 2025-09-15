@@ -6,7 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\{
     User,
-    SalesRepresentative
+    SalesRepresentative,
+    Order,
 };
 use App\Helpers\{
     FileHelper,
@@ -16,10 +17,17 @@ use App\Http\Resources\Api\V1\SalesRepresentative\{
     SalesRepresentativeCollectionResource,
     SalesRepresentativeResource,
 };
+
+use App\Http\Resources\Api\V1\Order\{
+    OrderCollectionResource,
+    OrderResource,
+};
+
 use App\Http\Requests\Api\V1\SalesRepresentative\{
     CreateSalesRepresentativeRequest,
     EditSalesRepresentativeRequest,
 };
+
 
 use DB;
 
@@ -129,5 +137,28 @@ class SalesRepresentativeController extends Controller
         $user->status = "banned";
         $user->update();
         return ResponseHelper::success('SalesRepresentative deleted successfully');
+    }
+
+    public function getMyRecentOrders(Request $request){
+
+        $orderTake = $request->take ?? 5;
+
+        $salesRepId = auth()->user()->id;
+
+        $orders = Order::where('sales_rep_id', $salesRepId)->with(['items', 'customer', 'items.product:id,thumbnail'])->orderBy('id', 'desc')->take($orderTake)->get() ?? [];
+
+        if (!count($orders)) return ResponseHelper::error('Orders not found', 404);
+
+        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
+    }
+
+    public function getMyOrders(){
+        $salesRepId = auth()->user()->id;
+
+        $orders = Order::where('sales_rep_id', $salesRepId)->with(['items', 'customer', 'items.product:id,thumbnail'])->orderBy('id', 'desc')->get() ?? [];
+
+        if (!count($orders)) return ResponseHelper::error('Orders not found', 404);
+
+        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
     }
 }

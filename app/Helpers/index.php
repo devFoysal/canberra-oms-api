@@ -53,3 +53,31 @@ if (!function_exists('generate_employee_code')) {
         return "{$prefix}-{$date}-{$random}";
     }
 }
+
+if (!function_exists('number_to_words')) {
+    function number_to_words($number): string
+    {
+        // Return 'zero' if null or not numeric
+        if (!is_numeric($number)) {
+            return 'zero';
+        }
+
+        try {
+            $formatter = new \NumberFormatter("en", \NumberFormatter::SPELLOUT);
+
+            // Handle decimals
+            if (strpos((string)$number, '.') !== false) {
+                $parts = explode('.', (string)$number);
+                $integerPart = $formatter->format($parts[0]);
+                $decimalPart = implode(' ', str_split($parts[1])); // spell out each digit
+                return $integerPart . ' point ' . $decimalPart;
+            }
+
+            return $formatter->format($number);
+
+        } catch (\Exception $e) {
+            // fallback if any error occurs
+            return (string)$number;
+        }
+    }
+}

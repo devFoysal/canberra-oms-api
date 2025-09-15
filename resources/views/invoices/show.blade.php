@@ -3,203 +3,249 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice</title>
+    <title>Mr Traders - Invoice</title>
     <style>
-        body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            font-family: DejaVu Sans, sans-serif;
+            /* UTF-8 + ৳ support */
+        }
+
+        body {
+            background-color: #f8f9fa;
             color: #333;
+            line-height: 1.5;
+            font-size: 13px;
+            padding: 20px;
         }
 
-        .invoice-wrapper {
-            max-width: 900px;
-            margin: 50px auto;
-            background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-            padding: 40px 50px;
+        .invoice {
+            max-width: 1000px;
+            margin: 0 auto;
+            /* background: #fff; */
+            padding: 25px;
+            /* border: 1px solid #ccc; */
+            /* dompdf ignores box-shadow */
+            border-radius: 8px;
         }
 
-        /* Header */
-        .invoice-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #ececec;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-
-        .invoice-header h1 {
-            font-size: 32px;
-            color: #1f2937;
-            margin: 0;
-        }
-
-        .invoice-logo {
-            width: 120px;
-            height: auto;
-        }
-
-        /* Sections */
-        .invoice-section {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
-        }
-
-        .invoice-section div {
-            flex: 1 1 45%;
+        header {
+            border-bottom: 2px solid #eee;
             margin-bottom: 20px;
+            padding-bottom: 10px;
+            text-align: center;
         }
 
-        .invoice-section h3 {
-            color: #1f2937;
-            font-size: 18px;
+        header img {
+            height: 50px;
             margin-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 5px;
         }
 
-        .invoice-section p {
-            margin: 4px 0;
-            font-size: 15px;
+        h2 {
+            color: #28a745;
+            margin: 0;
+            font-size: 20px;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            font-size: 14px;
+            margin: 8px 0;
+        }
+
+        h4 {
+            font-size: 13px;
+            margin: 3px 0;
+        }
+
+        .row {
+            width: 100%;
+            display: block;
+            clear: both;
+        }
+
+        .col-sm-6 {
+            display: inline-block;
+            width: 49%;
+            vertical-align: top;
+        }
+
+        .col-sm-12 {
+            display: block;
+            width: 100%;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-end {
+            text-align: right;
+        }
+
+        .text-start {
+            text-align: left;
+        }
+
+        .text-success {
+            color: #28a745;
+        }
+
+        .text-dark {
+            color: #343a40;
+        }
+
+        .fw-bold {
+            font-weight: bold;
         }
 
         /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-bottom: 15px;
         }
 
         table th,
         table td {
-            padding: 15px 12px;
-            text-align: left;
+            border: 1px solid #dee2e6;
+            padding: 8px;
         }
 
         table th {
-            background-color: #1f2937;
-            color: #fff;
-            font-weight: 600;
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .no-border td {
             border: none;
+            padding: 4px 6px;
         }
 
-        table tbody tr {
-            border-bottom: 1px solid #e0e0e0;
+        /* Spacing */
+        .mt-3 {
+            margin-top: 15px;
         }
 
-        table tbody tr:nth-child(even) {
-            background-color: #fafafa;
+        .mt-5 {
+            margin-top: 30px;
         }
 
-        .total-row td {
-            font-weight: 700;
-            background-color: #f9fafb;
+        .mb-0 {
+            margin-bottom: 0;
         }
 
-        .text-right {
-            text-align: right;
+        .mb-2 {
+            margin-bottom: 8px;
+        }
+        .custom-hr {
+            border: none;
+            height: 1.5px;
+            background-color: #dee2e6;
+            margin: 10px auto;
+            width: 80%;
         }
 
-        /* Footer */
-        .invoice-footer {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 14px;
-            color: #777;
-            border-top: 1px solid #ececec;
-            padding-top: 20px;
-        }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-            .invoice-section {
-                flex-direction: column;
-            }
-
-            .invoice-section div {
-                flex: 1 1 100%;
-            }
-
-            .invoice-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .invoice-logo {
-                margin-top: 20px;
-            }
+        .capitalize {
+            text-transform: capitalize
         }
     </style>
 </head>
 
 <body>
-    <div class="invoice-wrapper">
+
+    <div class="invoice">
+
         <!-- Header -->
-        <div class="invoice-header">
-            <h1>Invoice</h1>
-            <img src="https://via.placeholder.com/120x50?text=Logo" alt="Company Logo" class="invoice-logo">
-        </div>
+        <header>
+            <img src="file://{{ public_path('canberra/logo.png') }}" alt="Logo" width="150">
+            <h2>Mr Traders</h2>
+            <p>Your Trusted Source for Quality Imports</p>
+            <h3 class="fw-bold text-dark">INVOICE</h3>
+        </header>
 
-        <!-- Order & Invoice Info -->
-        <div class="invoice-section">
-            <div>
-                <h3>Order Information</h3>
-                <p><strong>Order ID:</strong> {{ $order->order_id }}</p>
-                <p><strong>Customer:</strong> {{ $order->customer->name }}</p>
-                <p><strong>Date:</strong> {{ $order->created_at->format('Y-m-d') }}</p>
+        <!-- Bill Info -->
+        <div class="row">
+            <div class="col-sm-6">
+                <h4 class="fw-bold text-dark">Bill No: {{ $order->invoice->invoice_number }}</h4>
             </div>
-            <div>
-                <h3>Invoice Information</h3>
-                <p><strong>Invoice Number:</strong> {{ $order->invoice->invoice_number }}</p>
-                <p><strong>Status:</strong> {{ $order->invoice->status }}</p>
-                <p><strong>Subtotal:</strong> Tk{{ $order->subtotal }}</p>
-                <p><strong>Tax:</strong> Tk{{ $order->tax }}</p>
-                <p><strong>Total:</strong> Tk{{ $order->total }}</p>
+            <div class="col-sm-6 text-end">
+                <h4>Date: {{ $order->invoice->issue_date }}</h4>
+                <h4>Status: <span class="capitalize">{{ $order->invoice->status }}</span></h4>
             </div>
         </div>
 
-        <!-- Items Table -->
-        <div class="invoice-section">
-            <h3>Order Items</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Quantity</th>
-                        <th>Price</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($order->items as $item)
-                    <tr>
-                        <td>{{ $item->product->name }}</td>
-                        <td>{{ $item->quantity }}</td>
-                        <td>Tk{{ $item->price }}</td>
-                        <td>Tk{{ $item->quantity * $item->price }}</td>
-                    </tr>
-                    @endforeach
-                    <tr class="total-row">
-                        <td colspan="3" class="text-right">Grand Total</td>
-                        <td>Tk{{ $order->total }}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Customer Info -->
+        <table class="no-border mt-3">
+            <tr>
+                <td class="fw-bold text-success" width="25%">Customer Name:</td>
+                <td>{{ $order->customer->name}}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold text-success">Outlet Name:</td>
+                <td>{{ $order->customer->shop_name}}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold text-success">Address:</td>
+                <td>{{ $order->customer->address}}</td>
+            </tr>
+        </table>
+
+        <!-- Items -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Sl.No</th>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th colspan="1">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if($order->items->count())
+                @foreach ($order->items as $key => $item)
+                <tr>
+                    <td class="text-center text-success">{{ $key + 1 }}</td>
+                    <td class="text-center">{{ $item->product_name }}</td>
+                    <td class="text-center">{{ $item->quantity }}</td>
+                    <td  class="text-center">Tk{{ $item->price }}</td>
+                    <td colspan="1" class="text-center">Tk{{ $item->total }}</td>
+                </tr>
+                @endforeach
+                <tr>
+                    <td colspan="4" class="fw-bold text-end text-success">Total:</td>
+                    <td colspan="1" class="fw-bold text-center">Tk{{ $order->total }}</td>
+                </tr>
+                <tr>
+                    <td class="fw-bold text-end text-success">Taka In Word:</td>
+                    <td colspan="4" class="fw-bold capitalize">{{ number_to_words(round($order->total)) }}</td>
+                </tr>
+                @endif
+            </tbody>
+        </table>
+
+        <!-- Signatures -->
+        <div class="row mt-5">
+            <div class="col-sm-6 text-center">
+                <hr class="custom-hr">
+                <p class="text-success mb-0">Receiver's Signature</p>
+            </div>
+            <div class="col-sm-6 text-center">
+                <hr class="custom-hr">
+                <p class="text-success mb-0">For Mr Traders</p>
+            </div>
         </div>
 
         <!-- Footer -->
-        <div class="invoice-footer">
-            Thank you for your business!<br>
-            &copy; {{ date('Y') }} Canberra
+        <div class="text-center mt-5">
+            <p class="mb-0"><span class="fw-bold">Website:</span> www.canberralimited.com | <span
+                    class="fw-bold">Email:</span> sales@canberralimited.com</p>
+            <p class="mb-0"><span class="fw-bold">Contact:</span> Mr. Rubel 01926 217736, Mr. Masum 01951 519756</p>
         </div>
+
     </div>
 </body>
 

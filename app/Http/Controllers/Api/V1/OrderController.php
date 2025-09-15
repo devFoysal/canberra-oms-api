@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Invoice;
 use App\Helpers\{
     ResponseHelper,
     OrderHelper
@@ -20,6 +21,7 @@ use App\Http\Resources\Api\V1\Order\{
     OrderResource,
 };
 
+use Carbon\Carbon;
 use DB;
 
 class OrderController extends Controller
@@ -125,9 +127,30 @@ class OrderController extends Controller
                 );
             }
 
+            /*
+                Generate Invoice
+            */
+            // Prepare invoice data
+            $invoiceData = [
+                'order_id' => $order->id,
+                'subtotal' => $order->subtotal,
+                'tax' => $order->tax,
+                'total' => $order->total,
+                'due_date' => Carbon::now(),
+                'customer_id' => $order->customer_id,
+                'created_by_id' => auth()->user()->id,
+            ];
+
+            // Create invoice
+            Invoice::create($invoiceData);
+
+            // Update order invoice status
+            $order->invoice_status = 'generated';
+            $order->update();
+
             DB::commit();
 
-            $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
+            $order->load(['customer', 'salesRep', 'items.product:id,thumbnail', 'invoice']);
 
             return ResponseHelper::success(new OrderResource($order), 'Order confirmed');
 
@@ -145,4 +168,5 @@ class OrderController extends Controller
         $order->delete();
         return ResponseHelper::success('Order deleted successfully');
     }
+
 }

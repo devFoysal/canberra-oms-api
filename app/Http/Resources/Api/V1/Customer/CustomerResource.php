@@ -24,7 +24,7 @@ class CustomerResource extends JsonResource
             'address' => $this->address,
             'totalOrder' => $this->orders_count,
             'lastOrderDate' => $this->orders_max_created_at
-                ? Carbon::parse($this->orders_max_created_at)->format('d F, Y')
+                ? Carbon::parse($this->orders_max_created_at)->format('d M, Y')
                 : null,            // 'avatar' => $this->avatar,
             // 'status' => $this->status,
             'salesRepresentative' => [

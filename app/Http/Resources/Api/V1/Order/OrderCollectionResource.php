@@ -48,7 +48,7 @@ class OrderCollectionResource extends JsonResource
             "salesRepresentative" => new SalesRepresentativeResource($this->salesRep),
             "items" => OrderItemCollectionResource::collection($this->items),
             'date' => $this->created_at
-                ? Carbon::parse($this->created_at)->format('d F, Y')
+                ? Carbon::parse($this->created_at)->format('d M, Y')
                 : null,
         ];
     }

@@ -21,7 +21,7 @@ class InvoiceResource extends JsonResource
             "id" => $this->id,
             "invoiceNumber" => $this->invoice_number,
             'issueDate' => $this->issue_date
-                ? Carbon::parse($this->issue_date)->format('d F, Y')
+                ? Carbon::parse($this->issue_date)->format('d M, Y')
                 : null,
             "status" => $this->status,
         ];

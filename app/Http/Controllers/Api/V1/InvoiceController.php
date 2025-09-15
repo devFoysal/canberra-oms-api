@@ -97,7 +97,15 @@ class InvoiceController extends Controller
         $order->load(['customer', 'salesRep', 'invoice', 'items']);
 
         // return  ResponseHelper::success($order, 'Invoice not found', 404);
-        $pdf = Pdf::loadView('invoices.show', compact('order'));
+        $pdf = Pdf::loadView('invoices.show', compact('order'))
+        // ->setPaper('a4', 'portrait')
+        ->setOptions([
+            'defaultFont' => 'sans-serif',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'isPhpEnabled' => true,
+        ]);
+        // return view('invoices.show', compact('order'));
 
         return $pdf->download("Invoice_{$invoice->invoice_number}_{$order->id}.pdf");
     }

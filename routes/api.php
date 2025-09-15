@@ -51,6 +51,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [SalesRepresentativeController::class, 'show']);
             Route::post('/{id}', [SalesRepresentativeController::class, 'update']);
             Route::delete('/{id}', [SalesRepresentativeController::class, 'destroy']);
+
+            Route::prefix('my')->group(function () {
+                // orders
+                Route::get('/recent-orders', [SalesRepresentativeController::class, 'getMyRecentOrders']);
+                Route::get('/orders', [SalesRepresentativeController::class, 'getMyOrders']);
+            });
         });
 
          // Customer routes
