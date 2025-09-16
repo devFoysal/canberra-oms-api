@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 use App\Helpers\{
     FileHelper,
@@ -28,6 +29,11 @@ use App\Http\Requests\Api\V1\Auth\{
     SignInRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest
+};
+
+use App\Mail\Auth\{
+    PasswordResetMail,
+    PasswordResetSuccessMail
 };
 
 /**
@@ -314,22 +320,16 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function forgotPassword(Request $request): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         try {
             $token = Str::random(60);
             $email = $request->email;
+            $user = User::where('email', $email)->first();
+
+            if(!$user)  return ResponseHelper::error("Email not found",404);
+
 
             DB::table('password_reset_tokens')->updateOrInsert(
                 ['email' => $email],
@@ -340,18 +340,16 @@ class AuthController extends Controller
                 ]
             );
 
-            // In a real application, you would send an email here
-            // Mail::to($email)->send(new PasswordResetMail($token));
+            $name = $user->full_name;
+            $resetUrl = config('canbirra.frontend_url') . "/reset-password?token={$token}";
 
-            return response()->json([
-                'message' => 'Password reset link sent to your email',
-                'reset_token' => $token // Remove this in production
-            ], 200);
+            // In a real application, you would send an email here
+            Mail::to($user->email)->queue(new PasswordResetMail($name, $resetUrl));
+
+            return ResponseHelper::success(null, "Password reset link sent to your email " . count(Mail::failures()));
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Unable to send reset email'
-            ], 500);
+            return ResponseHelper::error($e->getMessage(),500);
         }
     }
 
@@ -416,39 +414,27 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-            'token' => 'required|string',
-            'password' => 'required|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         try {
             $resetData = DB::table('password_reset_tokens')
                 ->where('email', $request->email)
                 ->first();
 
             if (!$resetData || !Hash::check($request->token, $resetData->token)) {
-                return response()->json([
-                    'message' => 'Invalid or expired reset token'
-                ], 400);
+                return ResponseHelper::error('Invalid or expired reset token', 400);
             }
 
             if (Carbon::parse($resetData->token_expiry)->isPast()) {
-                return response()->json([
-                    'message' => 'Reset token has expired'
-                ], 400);
+                return ResponseHelper::error('Reset token has expired', 400);
             }
 
             $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                return ResponseHelper::error('Invalid email address', 404);
+            }
+
             $user->update([
                 'password' => Hash::make($request->password)
             ]);
@@ -457,15 +443,12 @@ class AuthController extends Controller
                 ->where('email', $request->email)
                 ->delete();
 
-            return response()->json([
-                'message' => 'Password reset successfully'
-            ], 200);
+            Mail::to($user->email)->send(new PasswordResetSuccessMail($user->name));
+
+            return ResponseHelper::success(null, 'Password reset successfully {count(Mail::failures())}');
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Password reset failed',
-                'error' => $e->getMessage()
-            ], 500);
+            return ResponseHelper::error($e->getMessage(),500);
         }
     }
 

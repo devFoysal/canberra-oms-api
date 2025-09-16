@@ -104,6 +104,7 @@ class InvoiceController extends Controller
             'isHtml5ParserEnabled' => true,
             'isRemoteEnabled' => true,
             'isPhpEnabled' => true,
+            'chroot' => public_path()
         ]);
         // return view('invoices.show', compact('order'));
 

@@ -16,10 +16,10 @@ return new class extends Migration
             $table->string('name');
             $table->string('avatar')->nullable();
             $table->string('mobile_number');
-            $table->string('shop_name');
+            $table->string('shop_name')->nullable();
             $table->string('address')->nullable();
             $table->enum('status', ['active','inactive'])->default('active');
-            $table->foreignId('created_by_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_id')->nullable()->constrained('users')->cascadeOnDelete();
             $table->timestamps();
         });
     }

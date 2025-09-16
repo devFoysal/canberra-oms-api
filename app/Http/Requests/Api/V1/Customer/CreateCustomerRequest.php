@@ -22,11 +22,17 @@ class CreateCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'     => 'nullable|string|max:255',
-            'mobile'   => 'nullable|string|max:20|unique:customers,mobile_number',
+            'name'     => 'required|string|max:255',
+            'mobile'   => [
+                'required',
+                'string',
+                'max:20',
+                'unique:customers,mobile_number',
+                'regex:/^01[0-9]{9}$/',
+            ],
             'shopName' => 'nullable|string|max:255',
-            'address'  => 'nullable|string|max:500',
-            'assignSalesPerson'  => 'nullable',
+            'address'  => 'required|string|max:500',
+            'assignSalesPerson'  => 'nullable|integer',
         ];
     }
 }

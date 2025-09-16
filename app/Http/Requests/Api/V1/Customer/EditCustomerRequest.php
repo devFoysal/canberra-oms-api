@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1\Customer;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class EditCustomerRequest extends FormRequest
 {
@@ -21,12 +22,19 @@ class EditCustomerRequest extends FormRequest
      */
     public function rules(): array
     {
+        $customerId = $this->route('id'); // get customer ID from route
         return [
-            'name'     => 'nullable|string|max:255',
-            'mobile'   => 'nullable|string|max:20',
+            'name'     => 'required|string|max:255',
+            'mobile'   => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('customers', 'mobile_number')->ignore($customerId), // ignore current record
+                'regex:/^01[0-9]{9}$/',
+            ],
             'shopName' => 'nullable|string|max:255',
-            'address'  => 'nullable|string|max:500',
-            'assignSalesPerson'  => 'nullable|number',
+            'address'  => 'required|string|max:500',
+            'assignSalesPerson'  => 'nullable|integer',
         ];
     }
 }

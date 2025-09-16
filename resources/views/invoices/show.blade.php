@@ -160,7 +160,7 @@
 
         <!-- Header -->
         <header>
-            <img src="file://{{ public_path('canberra/logo.png') }}" alt="Logo" width="150">
+            <img src="{{ public_path('canberra/logo.png') }}" alt="Logo" width="150">
             <h2>Mr Traders</h2>
             <p>Your Trusted Source for Quality Imports</p>
             <h3 class="fw-bold text-dark">INVOICE</h3>
