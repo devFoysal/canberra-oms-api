@@ -32,6 +32,12 @@ class EditCustomerRequest extends FormRequest
                 Rule::unique('customers', 'mobile_number')->ignore($customerId), // ignore current record
                 'regex:/^01[0-9]{9}$/',
             ],
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                Rule::unique('customers', 'email')->ignore($customerId),
+            ],
             'shopName' => 'nullable|string|max:255',
             'address'  => 'required|string|max:500',
             'assignSalesPerson'  => 'nullable|integer',

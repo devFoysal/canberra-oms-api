@@ -30,6 +30,7 @@ class CreateCustomerRequest extends FormRequest
                 'unique:customers,mobile_number',
                 'regex:/^01[0-9]{9}$/',
             ],
+            'email' => 'nullable|email|max:255|unique:customers,email',
             'shopName' => 'nullable|string|max:255',
             'address'  => 'required|string|max:500',
             'assignSalesPerson'  => 'nullable|integer',

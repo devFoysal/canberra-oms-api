@@ -44,7 +44,7 @@
         }
 
         h2 {
-            color: #28a745;
+            color: #8d1c1c;
             margin: 0;
             font-size: 20px;
             text-transform: uppercase;
@@ -90,7 +90,7 @@
         }
 
         .text-success {
-            color: #28a745;
+            color: #8d1c1c;
         }
 
         .text-dark {
@@ -140,6 +140,7 @@
         .mb-2 {
             margin-bottom: 8px;
         }
+
         .custom-hr {
             border: none;
             height: 1.5px;
@@ -160,16 +161,16 @@
 
         <!-- Header -->
         <header>
-            <img src="{{ public_path('canberra/logo.png') }}" alt="Logo" width="150">
-            <h2>Mr Traders</h2>
-            <p>Your Trusted Source for Quality Imports</p>
+            <img src="{{ public_path('canberra/logo.png') }}" alt="Logo">
+            <h2>Canberra Limited</h2>
+            <p>Rooted in Quality, Made with Pride</p>
             <h3 class="fw-bold text-dark">INVOICE</h3>
         </header>
 
         <!-- Bill Info -->
         <div class="row">
             <div class="col-sm-6">
-                <h4 class="fw-bold text-dark">Bill No: {{ $order->invoice->invoice_number }}</h4>
+                <h4 class="fw-bold text-dark">Bill No: {{ $order->invoice->id }}</h4>
             </div>
             <div class="col-sm-6 text-end">
                 <h4>Date: {{ $order->invoice->issue_date }}</h4>
@@ -184,7 +185,11 @@
                 <td>{{ $order->customer->name}}</td>
             </tr>
             <tr>
-                <td class="fw-bold text-success">Outlet Name:</td>
+                <td class="fw-bold text-success" width="25%">Customer Mobile:</td>
+                <td>{{ $order->customer->mobile_number}}</td>
+            </tr>
+            <tr>
+                <td class="fw-bold text-success">Outlet:</td>
                 <td>{{ $order->customer->shop_name}}</td>
             </tr>
             <tr>
@@ -197,11 +202,11 @@
         <table>
             <thead>
                 <tr>
-                    <th>Sl.No</th>
+                    <th style="width:40px;">Sl.No</th>
                     <th>Item</th>
                     <th>Quantity</th>
                     <th>Unit Price</th>
-                    <th colspan="1">Total</th>
+                    <th>Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -209,19 +214,19 @@
                 @foreach ($order->items as $key => $item)
                 <tr>
                     <td class="text-center text-success">{{ $key + 1 }}</td>
-                    <td class="text-center">{{ $item->product_name }}</td>
+                    <td class="text-start">{{ $item->product_name }}</td>
                     <td class="text-center">{{ $item->quantity }}</td>
-                    <td  class="text-center">Tk{{ $item->price }}</td>
-                    <td colspan="1" class="text-center">Tk{{ $item->total }}</td>
+                    <td class="text-center">{{ $item->price }}</td>
+                    <td class="text-center">{{ $item->total }}</td>
                 </tr>
                 @endforeach
                 <tr>
                     <td colspan="4" class="fw-bold text-end text-success">Total:</td>
-                    <td colspan="1" class="fw-bold text-center">Tk{{ $order->total }}</td>
+                    <td colspan="1" class="fw-bold text-center">{{ $order->total }}</td>
                 </tr>
                 <tr>
-                    <td class="fw-bold text-end text-success">Taka In Word:</td>
-                    <td colspan="4" class="fw-bold capitalize">{{ number_to_words(round($order->total)) }}</td>
+                    <td colspan="2" class="fw-bold text-end text-success">Taka In Word:</td>
+                    <td colspan="3" class="fw-bold capitalize">{{ number_to_words(round($order->total)) }}</td>
                 </tr>
                 @endif
             </tbody>

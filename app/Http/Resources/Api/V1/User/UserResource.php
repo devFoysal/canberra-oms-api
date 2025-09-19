@@ -22,6 +22,7 @@ class UserResource extends JsonResource
             "avatar"=> $this->avatar ? asset($this->avatar): "",
             "email"=> $this->email,
             "last_login_at"=> $this->last_login_at,
+            'roles' => $this->getRoleNames()
         ];
     }
 }

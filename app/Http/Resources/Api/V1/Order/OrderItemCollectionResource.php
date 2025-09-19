@@ -22,13 +22,17 @@ class OrderItemCollectionResource extends JsonResource
     public function toArray(Request $request): array
     {
         // return parent::toArray($request);
+        $total = number_format((float)$this->quantity * (float)$this->price, 2, '.', '');
+
         return [
             "id" => $this->id,
+            "productId" => $this->product->id,
             "thumbnail" => asset($this->product->thumbnail),
             "name" => $this->product_name,
-            "price" => $this->price,
-            "quantity" => $this->quantity,
-            "originalQuantity" => $this->quantity,
+            "price" => (float) $this->price,
+            "quantity" => (int) $this->quantity,
+            "total"  => $total,
+            "originalQuantity" => (int) $this->quantity,
         ];
     }
 }

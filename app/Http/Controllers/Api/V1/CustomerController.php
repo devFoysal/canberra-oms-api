@@ -47,6 +47,7 @@ class CustomerController extends Controller
             $customerData =  [
                 'name' => $request->name,
                 'mobile_number' => $request->mobile,
+                'email' => $request->email,
                 'shop_name' => $request->shopName,
                 'address' => $request->address,
             ];
@@ -95,6 +96,7 @@ class CustomerController extends Controller
             $customerData =  [
                 'name' => $request->name,
                 'mobile_number' => $request->mobile,
+                'email' => $request->email,
                 'shop_name' => $request->shopName,
                 'address' => $request->address,
             ];

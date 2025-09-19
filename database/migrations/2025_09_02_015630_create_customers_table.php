@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('avatar')->nullable();
-            $table->string('mobile_number');
+            $table->string('mobile_number')->unique();
+            $table->string('email')->nullable()->unique();
             $table->string('shop_name')->nullable();
             $table->string('address')->nullable();
             $table->enum('status', ['active','inactive'])->default('active');

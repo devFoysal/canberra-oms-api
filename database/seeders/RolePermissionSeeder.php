@@ -21,6 +21,9 @@ class RolePermissionSeeder extends Seeder
             'user',
             'customer',
             'sales representative',
+            'order',
+            'invoice',
+            'payment',
         ];
 
         // === Define Actions ===
@@ -34,22 +37,15 @@ class RolePermissionSeeder extends Seeder
         }
 
         // === Create Roles ===
+        $superAdminRole  = Role::firstOrCreate(['name' => 'super_admin']);
         $adminRole  = Role::firstOrCreate(['name' => 'admin']);
         $salesRole  = Role::firstOrCreate(['name' => 'sales_representative']);
         $managerRole = Role::firstOrCreate(['name' => 'manager']);
 
         // === Assign Permissions to Roles ===
-        $adminRole->givePermissionTo(Permission::all()); // full access
+        $superAdminRole->givePermissionTo(Permission::all()); // full access
 
-        $salesRole->givePermissionTo([
-            'view customer',
-            'create customer',
-            'edit customer',
-            'view product',
-            'view category',
-        ]);
-
-        $managerRole->givePermissionTo([
+        $adminRole->givePermissionTo([
             'view product',
             'create product',
             'edit product',
@@ -57,9 +53,21 @@ class RolePermissionSeeder extends Seeder
             'view category',
             'create category',
             'edit category',
+            'view order',
+            'edit order',
+            'view invoice',
         ]);
 
         // === Create Users & Assign Roles ===
+        $superAdminUser = User::firstOrCreate(
+            ['email' => 'sales@canberralimited.com'],
+            [
+                'full_name' => 'Admin',
+                'password' => bcrypt('@canberra'), // change to secure password
+            ]
+        );
+        $superAdminUser->assignRole($superAdminRole);
+
         $adminUser = User::firstOrCreate(
             ['email' => 'admin@canberra.com'],
             [
@@ -68,23 +76,5 @@ class RolePermissionSeeder extends Seeder
             ]
         );
         $adminUser->assignRole($adminRole);
-
-        $salesUser = User::firstOrCreate(
-            ['email' => 'sales@canberra.com'],
-            [
-                'full_name' => 'Sales',
-                'password' => bcrypt('password'),
-            ]
-        );
-        $salesUser->assignRole($salesRole);
-
-        $managerUser = User::firstOrCreate(
-            ['email' => 'manager@canberra.com'],
-            [
-                'full_name' => 'Manager',
-                'password' => bcrypt('password'),
-            ]
-        );
-        $managerUser->assignRole($managerRole);
     }
 }

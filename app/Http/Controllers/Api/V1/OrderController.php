@@ -7,13 +7,16 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Invoice;
+use App\Models\Product;
 use App\Helpers\{
     ResponseHelper,
     OrderHelper
 };
 use App\Http\Requests\Api\V1\Order\{
     ProductOrderRequest,
-    EditOrderRequest
+    EditOrderRequest,
+    AddMoreProductRequest,
+    RemoveOrderItemRequest
 };
 
 use App\Http\Resources\Api\V1\Order\{
@@ -160,6 +163,8 @@ class OrderController extends Controller
         }
     }
 
+
+
     public function destroy($id)
     {
         $order = Order::find($id);
@@ -167,6 +172,70 @@ class OrderController extends Controller
 
         $order->delete();
         return ResponseHelper::success('Order deleted successfully');
+    }
+
+    // Order item
+    public function addMoreOrderItem(AddMoreProductRequest $request, $id)
+    {
+        $order = Order::find($id);
+
+        if (!$order) return ResponseHelper::error('Order not found', 404);
+
+        DB::beginTransaction();
+
+        try {
+
+            $data = $request->validated();
+
+            $product = Product::find($data['productId']);
+
+            if (!$product) return ResponseHelper::error('Product not found', 404);
+
+            $orderItem = [
+                'product_id' => (int) $product->id,
+                'product_name' => (string) $product->name,
+                'price' => $product->sale_price,
+                'quantity' => 1,
+                'total' => (float) $product->sale_price
+            ];
+
+            // New order item add
+            $order->items()->create($orderItem);
+
+            DB::commit();
+
+            $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
+
+            return ResponseHelper::success(new OrderResource($order), 'Product added to cart');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return ResponseHelper::error($e->getMessage(), 500);
+        }
+    }
+
+    public function removeOrderItem(RemoveOrderItemRequest $request, $id)
+    {
+
+        $order = Order::find($id);
+        if (!$order) return ResponseHelper::error('Order not found', 404);
+
+        $data = $request->validated();
+
+        $orderItem = OrderItem::find($data['itemId']);
+        if (!$orderItem) return ResponseHelper::error('Item not found', 404);
+
+        if ($orderItem->order_id !== $order->id) return ResponseHelper::error('Item not found', 404);
+
+        try {
+            $orderItem->delete();
+
+             $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
+            return ResponseHelper::success(new OrderResource($order), 'Product removed from cart');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return ResponseHelper::error($e->getMessage(), 500);
+        }
     }
 
 }

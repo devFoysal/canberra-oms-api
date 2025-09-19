@@ -25,6 +25,9 @@ Route::prefix('v1')->group(function () {
         Route::post('sign-in', [AuthController::class, 'signIn']);
         Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
         Route::post('reset-password', [AuthController::class, 'resetPassword']);
+        Route::prefix('admin')->group(function () {
+            Route::post('sign-in', [AuthController::class, 'adminSignIn']);
+        });
     });
 
     // Protected routes
@@ -92,6 +95,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
             Route::get('/{id}', [OrderController::class, 'show']);
             Route::post('/{id}', [OrderController::class, 'update']);
+            Route::post('/{id}/add-more-item', [OrderController::class, 'addMoreOrderItem']);
+            Route::post('/{id}/remove-item', [OrderController::class, 'removeOrderItem']);
             Route::delete('/{id}', [OrderController::class, 'destroy']);
         });
 

@@ -20,6 +20,7 @@ class CustomerCollectionResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'mobile' => $this->mobile_number,
+            'email' => $this->email,
             'shopName' => $this->shop_name,
             'address' => $this->address,
             'totalOrder' => $this->orders_count,

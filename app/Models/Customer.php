@@ -14,6 +14,7 @@ class Customer extends Model
         'name',
         'avatar',
         'mobile_number',
+        'email',
         'shop_name',
         'address',
         'status',

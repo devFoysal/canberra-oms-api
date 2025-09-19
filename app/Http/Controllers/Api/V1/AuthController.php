@@ -230,6 +230,94 @@ class AuthController extends Controller
     }
 
     /**
+     * Admin Sign In
+     *
+     * @OA\Post(
+     *     path="/auth/admin/sign-in",
+     *     summary="Authenticate user",
+     *     description="Sign in with email and password",
+     *     operationId="signIn",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="User credentials",
+     *         @OA\JsonContent(
+     *             required={"email", "password"},
+     *             @OA\Property(
+     *                 property="email",
+     *                 type="string",
+     *                 format="email",
+     *                 example="foysal.km68@gmail.com"
+     *             ),
+     *             @OA\Property(
+     *                 property="password",
+     *                 type="string",
+     *                 format="password",
+     *                 example="password"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Login successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Login successful"),
+     *             @OA\Property(property="user", ref="#/components/schemas/User"),
+     *             @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Invalid credentials",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid credentials")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(ref="#/components/schemas/Error")
+     *     )
+     * )
+     */
+    public function adminSignIn(SignInRequest $request): JsonResponse
+    {
+
+        try{
+            if (Auth::attempt($request->only('email', 'password'))) {
+                $user = Auth::user();
+
+                if ($user->status !== 'active') {
+                    return ResponseHelper::error('Account is ' . $user->status, 403);
+                }
+
+                // Check if user has admin or super_admin role
+                if (!$user->hasAnyRole(['admin', 'super_admin'])) {
+                    return ResponseHelper::error('Access denied.', 403);
+                }
+
+                $user->update([
+                    'is_logged_in' => true,
+                    'last_login_at' => now()
+                ]);
+
+                $token = $user->createToken('authToken')->plainTextToken;
+
+                $data = [
+                    "user" => new UserResource($user),
+                    "token" => $token,
+                ];
+                return ResponseHelper::success($data, 'Login successful');
+            }else{
+                return ResponseHelper::error('Invalid credentials', 401);
+            }
+
+        } catch (\Exception $e) {
+            return ResponseHelper::error('Invalid credentials', $e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
      * User Sign Out
      *
      * @OA\Post(

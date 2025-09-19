@@ -13,7 +13,8 @@ Route::get('/', function () {
 
 
 Route::get('/login', function () {
-    return response()->json(['message' => 'Login route not available'], 401);
+    return bcrypt('@mrtraders');
+    // return response()->json(['message' => 'Login route not available'], 401);
 })->name('login');
 
 
