@@ -28,25 +28,20 @@ class Order extends Model
 
         static::creating(function ($order) {
             if (!$order->order_id) {
-                $date = date('Ymd');
-
-                // Find last order created today
-                $lastOrder = self::whereDate('created_at', today())
-                    ->latest('id')
-                    ->value('order_id');
+                $lastOrder = self::latest('id')->value('order_id');
 
                 $sequence = 1;
                 if ($lastOrder) {
-                    $lastSequence = (int)substr($lastOrder, -3); // last 3 digits
+                    // Remove prefix before converting to int
+                    $lastSequence = (int) str_replace('ORD-', '', $lastOrder);
                     $sequence = $lastSequence + 1;
                 }
 
-                $sequence = str_pad($sequence, 3, '0', STR_PAD_LEFT);
-
-                $order->order_id = "ORD-{$date}-{$sequence}";
+                $order->order_id = "ORD-{$sequence}";
             }
         });
     }
+
 
     // Relationship to Customer
     public function customer()

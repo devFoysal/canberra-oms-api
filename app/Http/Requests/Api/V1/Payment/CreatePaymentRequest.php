@@ -23,10 +23,11 @@ class CreatePaymentRequest extends FormRequest
     {
         return [
             'orderId'      => 'required|exists:orders,id',
-            'invoiceId'    => 'required|exists:invoices,id',
             'method'       => 'required|string',
             'amount'       => 'required|numeric|min:1',
-            'details'      => 'required|array',
+            'date'         => 'required|string|date_format:Y-m-d',
+            'description'  => 'nullable|string',
+            'ref'  => 'nullable|string',
         ];
     }
 }

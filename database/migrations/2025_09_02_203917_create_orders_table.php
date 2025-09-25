@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('tax', 10, 2)->default(0);
             $table->decimal('total', 10, 2);
             $table->enum('invoice_status', ['pending', 'generated'])->default('pending');
-            $table->enum('payment_status', ['pending', 'processing', 'paid'])->default('pending');
+            $table->enum('payment_status', ['pending', 'partial', 'paid'])->default('pending');
             $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->foreignId('sales_rep_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('modified_by_id')->nullable()->constrained('users')->nullOnDelete();

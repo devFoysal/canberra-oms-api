@@ -20,6 +20,10 @@ use App\Http\Resources\Api\V1\Invoice\{
     InvoiceResource
 };
 
+use App\Http\Resources\Api\V1\Payment\{
+    PaymentResource
+};
+
 use Carbon\Carbon;
 
 class OrderCollectionResource extends JsonResource
@@ -50,6 +54,12 @@ class OrderCollectionResource extends JsonResource
             'date' => $this->created_at
                 ? Carbon::parse($this->created_at)->format('d M, Y')
                 : null,
+            'dueAmount' => $this->invoice
+            ? max(0, (float) $this->invoice->total - (float) $this->invoice->payments->sum('amount_paid'))
+            : null,
+            'payments' => $this->invoice
+            ? PaymentResource::collection($this->invoice->payments)
+            : [],
         ];
     }
 }

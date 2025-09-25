@@ -31,8 +31,7 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
 
             // Status tracking
-            $table->enum('status', ['unpaid', 'paid', 'overdue', 'cancelled'])->default('unpaid');
-            $table->enum('payment_method', ['cash', 'bank', 'mfs', 'card'])->nullable();
+            $table->enum('status', ['unpaid', 'partial', 'paid', 'overdue', 'cancelled'])->default('unpaid');
 
             // Optional references
             $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();

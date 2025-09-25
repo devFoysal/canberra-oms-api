@@ -7,18 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 class Payment extends Model
 {
     protected $fillable = [
-        'transition_number',
+        'transaction_number',
         'order_id',
+        'invoice_id',
         'customer_id',
         'method',
         'amount',
+        'amount_paid',
         'currency',
+        'description',
+        'ref',
+        'payment_date',
+        'created_by',
         'status',
-        'details',
-    ];
-
-    protected $casts = [
-        'details' => 'array',
     ];
 
     protected static function boot()
@@ -26,13 +27,14 @@ class Payment extends Model
         parent::boot();
 
         static::creating(function ($payment) {
-            if (!$payment->transition_number) {
-                $date = date('Ymd');
+            if (!$payment->transaction_number) {
+                // Use invoice ID instead of date
+                $invoiceId = $payment->invoice_id ?? '0';
 
                 // Find last transition number created today
                 $lastPayment = self::whereDate('created_at', today())
                     ->latest('id')
-                    ->value('transition_number');
+                    ->value('transaction_number');
 
                 $sequence = 1;
                 if ($lastPayment) {
@@ -42,15 +44,9 @@ class Payment extends Model
 
                 $sequence = str_pad($sequence, 3, '0', STR_PAD_LEFT);
 
-                $payment->transition_number = "TRN-{$date}-{$sequence}";
+                $payment->transaction_number = "TRN-{$invoiceId}-{$sequence}";
             }
         });
-    }
-
-    // Example accessor for convenience
-    public function getProviderAttribute()
-    {
-        return $this->details['provider'] ?? null;
     }
 
     // Relationships

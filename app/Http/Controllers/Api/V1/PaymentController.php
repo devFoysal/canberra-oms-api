@@ -38,7 +38,7 @@ class PaymentController extends Controller
         $order = Order::find($data['orderId']);
         if (!$order) return ResponseHelper::error('Order not found', 404);
 
-        $invoice = Invoice::find($data['invoiceId']);
+        $invoice = Invoice::where('order_id', $order->id)->first();
         if (!$invoice) return ResponseHelper::error('Invoice not found', 404);
 
         DB::beginTransaction();
@@ -50,19 +50,38 @@ class PaymentController extends Controller
                 'invoice_id' => $invoice->id,
                 'customer_id' => $order->customer_id,
                 'method' => $data['method'],
-                'amount' => $data['amount'],
-                'details' => $data['details'],
+                'amount' => $invoice->total,
+                'amount_paid' => $data['amount'],
+                'description' => $data['description'],
+                'payment_date' => $data['date'],
             ];
 
             // Create payment
             $payment = Payment::create($paymentData);
 
-            if($payment){
-                $order->payment_status = 'paid';
-                $order->update();
+            if ($payment) {
+                // Total paid so far
+                $totalPaid = Payment::where('invoice_id', $invoice->id)->sum('amount_paid');
 
-                $invoice->status = 'paid';
-                $invoice->update();
+                // Update invoice status
+                if ($totalPaid == 0) {
+                    $invoice->status = 'pending';
+                } elseif ($totalPaid < $invoice->total) {
+                    $invoice->status = 'partial';
+                } else {
+                    $invoice->status = 'paid';
+                }
+                $invoice->save();
+
+                // Update order payment status
+                if ($totalPaid >= $invoice->total) {
+                    $order->payment_status = 'paid';
+                } elseif ($totalPaid > 0) {
+                    $order->payment_status = 'partial';
+                } else {
+                    $order->payment_status = 'pending';
+                }
+                $order->save();
             }
 
             DB::commit();

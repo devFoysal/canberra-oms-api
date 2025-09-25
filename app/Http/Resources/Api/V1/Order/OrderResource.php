@@ -37,7 +37,6 @@ class OrderResource extends JsonResource
             "orderId" => $this->order_id,
             "email" => $this->email,
             "mobileNumber" => $this->mobile_number,
-            "tax" => (float) $this->tax,
             "subtotal" => (float) $this->subtotal,
             "total" => (float) $this->total,
             "status" => $this->status,
@@ -51,6 +50,9 @@ class OrderResource extends JsonResource
             'date' => $this->created_at
                 ? Carbon::parse($this->created_at)->format('d M, Y')
                 : null,
+            'dueAmount' => $this->invoice
+            ? max(0, (float) $this->invoice->total - (float) $this->invoice->payments->sum('amount_paid'))
+            : null,
         ];
     }
 }
