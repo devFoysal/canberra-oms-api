@@ -9,8 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Helpers\{
-    ResponseHelper,
-    OrderHelper
+    ResponseHelper
 };
 use App\Http\Requests\Api\V1\Order\{
     ProductOrderRequest,
@@ -21,7 +20,7 @@ use App\Http\Requests\Api\V1\Order\{
 
 use App\Http\Resources\Api\V1\Order\{
     OrderCollectionResource,
-    OrderResource,
+    OrderResource
 };
 
 use Carbon\Carbon;
@@ -45,7 +44,6 @@ class OrderController extends Controller
         try {
             // Prepare order data
             $orderData = [
-                'order_id' => OrderHelper::generateOrderId(),
                 'customer_id' => $data['customer'] ?? null,
                 'sales_rep_id' => auth()->user()->id,
                 'subtotal' => $data['subtotal'],
