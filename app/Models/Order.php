@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OrderItem;
+use App\Models\Shipping;
 
 class Order extends Model
 {
@@ -79,5 +80,10 @@ class Order extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function shipping()
+    {
+        return $this->belongsTo(Shipping::class, 'id', 'order_id');
     }
 }

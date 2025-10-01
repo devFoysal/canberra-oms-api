@@ -22,8 +22,7 @@ return new class extends Migration
             $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->foreignId('sales_rep_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('modified_by_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->enum('status', ['pending', 'confirmed', 'shipped', 'cancelled'])->default('pending');
-
+            $table->enum('status', ['pending', 'confirmed', 'ready_to_ship', 'shipped', 'delivered', 'cancelled'])->default('pending');
             $table->timestamps();
         });
     }

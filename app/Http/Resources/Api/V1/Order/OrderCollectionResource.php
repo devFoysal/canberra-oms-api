@@ -16,6 +16,10 @@ use App\Http\Resources\Api\V1\Order\{
     OrderItemCollectionResource
 };
 
+use App\Http\Resources\Api\V1\Shipping\{
+    ShippingResource
+};
+
 use App\Http\Resources\Api\V1\Invoice\{
     InvoiceResource
 };
@@ -41,9 +45,9 @@ class OrderCollectionResource extends JsonResource
             "email" => $this->email,
             "mobileNumber" => $this->mobile_number,
             "tax" => (float) $this->tax,
-            "subtotal" => (float) $this->subtotal,
-            "total" => (float) $this->total,
-            "status" => $this->status,
+            "subtotal" => round((float) $this->subtotal,2),
+            "total" => round((float) $this->total,2),
+            "status" => status_label($this->status),
             "paymentStatus" => $this->payment_status,
             "invoiceStatus" => $this->invoice_status,
             "invoiceGenerated" => $this->invoice_status === 'generated' ? true : false,
@@ -54,12 +58,16 @@ class OrderCollectionResource extends JsonResource
             'date' => $this->created_at
                 ? Carbon::parse($this->created_at)->format('d M, Y')
                 : null,
+            'paidAmount' => $this->invoice
+                ? round((float) $this->invoice->payments->sum('amount_paid'),2)
+                : 0,
             'dueAmount' => $this->invoice
-            ? max(0, (float) $this->invoice->total - (float) $this->invoice->payments->sum('amount_paid'))
+            ? round(max(0, (float) $this->invoice->total - (float) $this->invoice->payments->sum('amount_paid')),2)
             : null,
             'payments' => $this->invoice
             ? PaymentResource::collection($this->invoice->payments)
             : [],
+            'shipping' => new ShippingResource($this->shipping),
         ];
     }
 }

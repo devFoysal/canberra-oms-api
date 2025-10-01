@@ -29,7 +29,7 @@ class OrderItemCollectionResource extends JsonResource
             "productId" => $this->product->id,
             "thumbnail" => asset($this->product->thumbnail),
             "name" => $this->product_name,
-            "price" => (float) $this->price,
+            "price" => round((float) $this->price,2),
             "quantity" => (int) $this->quantity,
             "total"  => $total,
             "originalQuantity" => (int) $this->quantity,

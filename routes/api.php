@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\{
     SalesRepresentativeController,
     InvoiceController,
     PaymentController,
+    ShippingController,
 };
 
 // API Version 1 routes
@@ -114,6 +115,17 @@ Route::prefix('v1')->group(function () {
         Route::prefix('payments')->group(function () {
             Route::post('/', [PaymentController::class, 'store']);
             Route::get('/', [PaymentController::class, 'index']);
+            // Route::get('/{id}', [PaymentController::class, 'show']);
+            // Route::post('/{id}', [PaymentController::class, 'update']);
+            // Route::delete('/{id}', [PaymentController::class, 'destroy']);
+        });
+
+         // Shipping routes
+        Route::prefix('shippings')->group(function () {
+            Route::post('/ready_to_ship/{id}', [ShippingController::class, 'readyToShip']);
+            Route::post('/shipped/{id}', [ShippingController::class, 'store']);
+            Route::post('/delivered/{id}', [ShippingController::class, 'delivered']);
+            Route::get('/', [ShippingController::class, 'index']);
             // Route::get('/{id}', [PaymentController::class, 'show']);
             // Route::post('/{id}', [PaymentController::class, 'update']);
             // Route::delete('/{id}', [PaymentController::class, 'destroy']);

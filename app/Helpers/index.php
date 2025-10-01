@@ -80,4 +80,17 @@ if (!function_exists('number_to_words')) {
             return (string)$number;
         }
     }
+
+    /**
+     * Check if file exists in storage
+     *
+     * @param string $path Relative path (e.g., 'storage/uploads/filename.webp')
+     * @return string
+     */
+    if (!function_exists('status_label')) {
+        function status_label($value)
+        {
+            return str_replace('_', ' ', $value);
+        }
+    }
 }
