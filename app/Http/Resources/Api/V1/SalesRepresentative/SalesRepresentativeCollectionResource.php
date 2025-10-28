@@ -21,7 +21,8 @@ class SalesRepresentativeCollectionResource extends JsonResource
             "email" => $this->email,
             "mobileNumber" => $this->mobile_number,
             "empId" => $this->salesRepresentative?->employee_code,
-            "territory" => $this->salesRepresentative?->territory
+            "territory" => $this->salesRepresentative?->territory,
+            "status" => $this->status
         ];
     }
 }

@@ -32,6 +32,24 @@ class OrderController extends Controller
     {
         $orders = Order::with(['customer', 'salesRep', 'items.product:id,thumbnail'])->orderBy('id', 'desc')->get();
         return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
+
+
+        // For pagination
+        //  $paginator = Order::with(['customer', 'salesRep', 'items.product:id,thumbnail'])
+        //     ->orderBy('id', 'desc')
+        //     ->paginate(15);
+
+        // $orders = $paginator->getCollection();
+
+        // return ResponseHelper::success([
+        //     'data' => OrderCollectionResource::collection($orders),
+        //     'pagination' => [
+        //         'current_page' => $paginator->currentPage(),
+        //         'per_page' => $paginator->perPage(),
+        //         'total' => $paginator->total(),
+        //         'last_page' => $paginator->lastPage(),
+        //     ]
+        // ], 'Orders retrieved successfully');
     }
 
     public function store(ProductOrderRequest $request)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Product;
 use App\Helpers\{
     FileHelper,
@@ -54,8 +55,14 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with('category')->orderBy('id', 'desc')->get();
-        return ResponseHelper::success(ProductCollectionResource::collection($products), 'Products retrieved successfully');
+        if (Cache::has('products')) {
+            return ResponseHelper::success(ProductCollectionResource::collection(Cache::get('products')), 'Products retrieved from cache successfully');
+        } else {
+            $products = Cache::remember('products', now()->addDays(1), function () {
+                return Product::with('category')->orderBy('id', 'desc')->get();
+            });
+            return ResponseHelper::success(ProductCollectionResource::collection($products), 'Products retrieved successfully');
+        }
     }
 
     /**

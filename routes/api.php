@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\V1\{
     InvoiceController,
     PaymentController,
     ShippingController,
+    AdminDashboardController,
+    SRDashboardController,
 };
 
 // API Version 1 routes
@@ -46,6 +48,16 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [UserController::class, 'show']);
             Route::post('/{id}', [UserController::class, 'update']);
             Route::delete('/{id}', [UserController::class, 'destroy']);
+        });
+
+        // Admin Dashboard
+        Route::prefix('admin')->group(function () {
+            Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+        });
+
+        // SR Dashboard
+        Route::prefix('sr')->group(function () {
+            Route::get('/dashboard', [SRDashboardController::class, 'index']);
         });
 
         // SalesRepresentative routes

@@ -19,7 +19,7 @@ class InvoiceCollectionResource extends JsonResource
             "id" => $this->id,
             "invoiceNumber" => $this->invoice_number,
             'issueDate' => $this->issue_date
-                ? Carbon::parse($this->issue_date)->format('d M, Y')
+                ? Carbon::parse($this->issue_date)->format('d M, Y h:i A')
                 : null,
             "status" => $this->status,
         ];
