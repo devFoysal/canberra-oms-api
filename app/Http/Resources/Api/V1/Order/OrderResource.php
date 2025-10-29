@@ -58,7 +58,7 @@ class OrderResource extends JsonResource
             "salesRepresentative" => new SalesRepresentativeResource($this->salesRep),
             "items" => OrderItemCollectionResource::collection($this->items),
             'date' => $this->created_at
-                ? Carbon::parse($this->created_at)->format('d M, Y')
+                ? Carbon::parse($this->created_at)->format('d M, Y h:i A')
                 : null,
             'paidAmount' => $this->invoice
                 ? round((float) $this->invoice->payments->sum('amount_paid'),2)
