@@ -39,15 +39,20 @@ class SRDashboardController extends Controller
         $pendingOrders = (clone $orders)->where('status', 'pending')->count();
 
         // -------------------------
-        // Payments collected today
+        // Today's confirmed order sales
         // -------------------------
-        $todaySales = Payment::whereHas('invoice.order', fn($q) => $q->where('sales_rep_id', $salesRepId))
+        $todaySales = (clone $orders)
+            // ->where('status', 'confirmed')
             ->whereDate('created_at', $today)
-            ->sum('amount_paid');
+            ->sum('total');
 
-        $yesterdaySales = Payment::whereHas('invoice.order', fn($q) => $q->where('sales_rep_id', $salesRepId))
+        // -------------------------
+        // Yesterday's confirmed order sales
+        // -------------------------
+        $yesterdaySales = (clone $orders)
+            // ->where('status', 'confirmed')
             ->whereDate('created_at', $yesterday)
-            ->sum('amount_paid');
+            ->sum('total');
 
         // -------------------------
         // Sales % change vs yesterday

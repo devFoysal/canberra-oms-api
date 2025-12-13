@@ -46,6 +46,23 @@ class AdminDashboardController extends Controller
             : 0;
 
         // -------------------------
+        // Sales Summary
+        // ---
+        $currentMonthSales = Order::whereMonth('created_at', now()->month)
+        ->whereYear('created_at', now()->year)
+        ->sum('total');
+
+        $lastMonthSales = Order::whereMonth('created_at', now()->subMonth()->month)
+        ->whereYear('created_at', now()->subMonth()->year)
+        ->sum('total');
+
+        $monthlySales = Order::selectRaw('MONTHNAME(created_at) as month_name, SUM(total) as sales')
+        ->whereYear('created_at', now()->year)
+        ->groupBy('month_name')
+        ->orderByRaw('MIN(created_at)')
+        ->get();
+
+        // -------------------------
         // Sales Representatives
         // -------------------------
         $activeReps = SalesRepresentative::whereHas('user', fn($q) => $q->where('status', 'active'))->count();
@@ -156,6 +173,10 @@ class AdminDashboardController extends Controller
 
             'pending_collections_orders'      => $pendingCollectionsOrders,
             'payment_collected_today_orders'  => $paymentCollectedTodayOrders,
+
+            'current_month_sales'               => round($currentMonthSales, 2),
+            'last_month_sales'                  => round($lastMonthSales, 2),
+            'monthly_sales'                    => $monthlySales,
         ];
 
         return ResponseHelper::success($data, 'Dashboard Summary');
