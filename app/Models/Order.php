@@ -86,4 +86,9 @@ class Order extends Model
     {
         return $this->belongsTo(Shipping::class, 'id', 'order_id');
     }
+
+    public function discounts()
+    {
+        return $this->hasMany(Discount::class, 'order_id', 'id');
+    }
 }

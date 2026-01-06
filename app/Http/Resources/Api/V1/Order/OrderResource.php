@@ -41,6 +41,16 @@ class OrderResource extends JsonResource
     public function toArray(Request $request): array
     {
         // return parent::toArray($request);
+
+        $discountAmount = $this->discounts->sum(function($discount) {
+            if ($discount->type === 'percentage') {
+                return ((float) $this->total * (float) $discount->value) / 100;
+            }
+            return (float) $discount->value;
+        });
+
+        $totalAfterDiscount = round(max(0, $this->total - $discountAmount + $this->tax), 2);
+
         return [
             "id" => $this->id,
             "orderId" => $this->order_id,
@@ -48,7 +58,9 @@ class OrderResource extends JsonResource
             "mobileNumber" => $this->mobile_number,
             "tax" => (float) $this->tax,
             "subtotal" => round((float) $this->subtotal,2),
-            "total" => round((float) $this->total,2),
+            // "total" => round((float) $this->total,2),
+            "discountAmount" => $discountAmount,
+            "total" => $totalAfterDiscount,
             "status" => status_label($this->status),
             "paymentStatus" => $this->payment_status,
             "invoiceStatus" => $this->invoice_status,
@@ -63,8 +75,12 @@ class OrderResource extends JsonResource
             'paidAmount' => $this->invoice
                 ? round((float) $this->invoice->payments->sum('amount_paid'),2)
                 : 0,
+            // 'dueAmount' => $this->invoice
+            // ? round(max(0, (float) $this->invoice->total - (float) $this->invoice->payments->sum('amount_paid')),2)
+            // : null,
+
             'dueAmount' => $this->invoice
-            ? round(max(0, (float) $this->invoice->total - (float) $this->invoice->payments->sum('amount_paid')),2)
+            ? round(max(0, (float) $totalAfterDiscount - (float) $this->invoice->payments->sum('amount_paid')),2)
             : null,
             'payments' => $this->invoice
             ? PaymentResource::collection($this->invoice->payments)

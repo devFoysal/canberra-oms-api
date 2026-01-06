@@ -22,15 +22,45 @@ use DB;
 
 class ShippingController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::whereIn('status',  [
-            'confirmed',
-            'ready_to_ship',
-            'shipped',
-            'delivered',
-        ])->with(['customer', 'items.product:id,thumbnail'])->orderBy('id', 'desc')->get();
-        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
+        // $orders = Order::whereIn('status',  [
+        //     'confirmed',
+        //     'ready_to_ship',
+        //     'shipped',
+        //     'delivered',
+        // ])->with(['customer', 'items.product:id,thumbnail'])->orderBy('id', 'desc')->get();
+        // return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
+
+
+        $query = $this->buildQuery($request);
+
+        // Get paginated results based on current page
+        $perPage = $request->per_page ?? 10;
+        $page = $request->page ?? 1;
+
+        // Manually paginate for export
+        $orders = $query->paginate($perPage, ['*'], 'page', $page);
+
+        $stats = Order::selectRaw("
+            SUM(status IN ('confirmed','ready_to_ship','shipped','delivered')) as all_count,
+            SUM(status = 'confirmed') as confirmed,
+            SUM(status = 'ready_to_ship') as ready_to_ship,
+            SUM(status = 'shipped') as shipped,
+            SUM(status = 'delivered') as delivered,
+            SUM(status = 'cancelled') as cancelled
+        ")->first();
+
+        $dataCount = [
+            ['id' => 'all',              'label' => 'All Orders',        'value' => $stats->all_count],
+            ['id' => 'confirmed',        'label' => 'Confirmed Orders',  'value' => $stats->confirmed],
+            ['id' => 'ready_to_ship',    'label' => 'Ready To Ship',  'value' => $stats->ready_to_ship],
+            ['id' => 'shipped',          'label' => 'Shipped',   'value' => $stats->shipped],
+            ['id' => 'delivered',        'label' => 'Delivered', 'value' => $stats->delivered],
+            ['id' => 'cancelled',        'label' => 'Cancelled', 'value' => $stats->cancelled]
+        ];
+
+        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully', 200, ['counts' => $dataCount]);
     }
 
     public function readyToShip($id)
@@ -115,6 +145,37 @@ class ShippingController extends Controller
             DB::rollBack();
             return ResponseHelper::error($e->getMessage(), 500);
         }
+    }
+
+    private function buildQuery(Request $request)
+    {
+        return Order::whereIn('status',  [
+            'confirmed',
+            'ready_to_ship',
+            'shipped',
+            'delivered',
+            'cancelled',
+        ])
+        ->when($request->search, fn ($q) =>
+            $q->where('order_id', 'like', "%".$request->search."%")
+        )
+        ->when($request->status === 'confirmed', fn ($q) =>
+            $q->where('status', 'confirmed')
+        )
+        ->when($request->status === 'ready_to_ship', fn ($q) =>
+            $q->where('status', 'ready_to_ship')
+        )
+        ->when($request->status === 'shipped', fn ($q) =>
+            $q->where('status', 'shipped')
+        )
+        ->when($request->status === 'delivered', fn ($q) =>
+            $q->where('status', 'delivered')
+        )
+        ->when($request->status === 'cancelled', fn ($q) =>
+            $q->where('status', 'cancelled')
+        )
+        ->with(['customer', 'items.product:id,thumbnail'])
+        ->orderBy('id', 'desc');
     }
 
 }

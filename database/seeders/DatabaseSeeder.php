@@ -38,7 +38,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $categories->random()->id,
         ]);
 
-        Order::factory(20)->create();
+        Order::factory(5)->create();
 
         OrderItem::factory(50)->create();
 

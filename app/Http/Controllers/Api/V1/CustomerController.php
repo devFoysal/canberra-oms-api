@@ -22,13 +22,26 @@ use App\Http\Requests\Api\V1\Customer\{
 class CustomerController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
-        $customers = Customer::with('user:id,full_name,email,mobile_number')->with('user.salesRepresentative:id,user_id,territory')->withCount('orders')
-            ->withMax('orders', 'created_at')
-            ->orderBy('id', 'desc')
-            ->get();
-        return ResponseHelper::success(CustomerCollectionResource::collection($customers), 'Customers retrieved successfully');
+        $query = $this->buildQuery($request);
+
+        // Get paginated results based on current page
+        $perPage = $request->per_page ?? 10;
+        $page = $request->page ?? 1;
+
+        // Manually paginate for export
+        $customers = $query->paginate($perPage, ['*'], 'page', $page);
+
+        $stats = Customer::selectRaw("
+            COUNT(*) as all_count
+        ")->first();
+
+        $dataCount = [
+            ['id' => 'all', 'label' => 'All Customers', 'value' => $stats->all_count],
+        ];
+
+        return ResponseHelper::success(CustomerCollectionResource::collection($customers), 'Customers retrieved successfully', 200, ['counts' => $dataCount]);
     }
 
     public function store(CreateCustomerRequest $request)
@@ -123,5 +136,19 @@ class CustomerController extends Controller
 
         $customer->delete();
         return ResponseHelper::success('Customer deleted successfully');
+    }
+
+    private function buildQuery(Request $request)
+    {
+        return Customer::when($request->search, fn ($q) =>
+            $q->where('name', 'like', "%".$request->search."%")
+            ->orWhere('mobile_number', 'like', "%".$request->search."%")
+            ->orWhere('shop_name', 'like', "%".$request->search."%")
+        )
+        ->with('user:id,full_name,email,mobile_number')
+        ->with('user.salesRepresentative:id,user_id,territory')
+        ->withCount('orders')
+        ->withMax('orders', 'created_at')
+        ->orderBy('id', 'desc');
     }
 }

@@ -21,8 +21,7 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         $subtotal = $this->faker->randomFloat(2, 500, 5000); // between 500 and 5000
-        $tax = $this->faker->randomFloat(2, 0, 500);
-        $total = $subtotal + $tax;
+        $total = $subtotal;
 
         $statusOptions = ['pending'];
         $invoiceStatusOptions = ['pending', 'generated'];
@@ -32,7 +31,6 @@ class OrderFactory extends Factory
             'customer_id' => Customer::inRandomOrder()->first()?->id ?? Customer::factory(),
             'sales_rep_id' => User::inRandomOrder()->first()?->id ?? User::factory(),
             'subtotal' => $subtotal,
-            'tax' => $tax,
             'total' => $total,
             'status' => $this->faker->randomElement($statusOptions),
             'invoice_status' => $this->faker->randomElement($invoiceStatusOptions),

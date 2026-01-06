@@ -27,6 +27,8 @@ class EditOrderRequest extends FormRequest
             'total'            => 'required|numeric|min:0',
             'items'            => 'required|array|min:1',
             'saveChange'       => 'nullable|boolean',
+            'discount.type' => 'nullable|string|in:percentage,fixed',
+            'discount.value' => 'nullable|numeric|min:0',
         ];
     }
 }

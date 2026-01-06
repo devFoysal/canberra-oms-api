@@ -3,6 +3,8 @@
 namespace App\Helpers;
 
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 class ResponseHelper
 {
@@ -14,8 +16,18 @@ class ResponseHelper
      * @param int $status
      * @return \Illuminate\Http\JsonResponse
      */
-    public static function success($data = null, string $message = 'Success', int $status = 200)
+    public static function success($data = null, string $message = 'Success', int $status = 200, array $extra = [])
     {
+
+        // If Laravel Resource Collection or JsonResource → add meta directly
+        if ($data instanceof JsonResource || $data instanceof ResourceCollection) {
+            return $data->additional([
+                'status'  => 'success',
+                'message' => $message,
+                'extra' => $extra
+            ])->response()->setStatusCode($status);
+        }
+
         $response = [
             'status'  => 'success',
             'message' => $message,
@@ -31,6 +43,10 @@ class ResponseHelper
             ];
         } else {
             $response['data'] = $data;
+        }
+
+        if (!empty($extra)) {
+            $response = array_merge($response, $extra);
         }
 
         return response()->json($response, $status);

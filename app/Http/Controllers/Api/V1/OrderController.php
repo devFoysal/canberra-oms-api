@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Invoice;
-use App\Models\Product;
+use App\Models\{
+    Order,
+    OrderItem,
+    Invoice,
+    Product,
+    Discount
+};
+
 use App\Helpers\{
     ResponseHelper
 };
@@ -28,28 +32,41 @@ use DB;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::with(['customer', 'salesRep', 'items.product:id,thumbnail'])->orderBy('id', 'desc')->get();
-        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
+        $query = $this->buildQuery($request);
 
+        // Get paginated results based on current page
+        $perPage = $request->per_page ?? 10;
+        $page = $request->page ?? 1;
 
-        // For pagination
-        //  $paginator = Order::with(['customer', 'salesRep', 'items.product:id,thumbnail'])
-        //     ->orderBy('id', 'desc')
-        //     ->paginate(15);
+        // Manually paginate for export
+        $orders = $query->paginate($perPage, ['*'], 'page', $page);
 
-        // $orders = $paginator->getCollection();
+        $stats = Order::selectRaw("
+            COUNT(*) as all_count,
+            SUM(status = 'pending') as pending,
+            SUM(status = 'confirmed') as confirmed,
+            SUM(status = 'cancelled') as cancelled,
+            SUM(invoice_status = 'pending') as invoicePending,
+            SUM(invoice_status = 'generated') as invoiceGenerated,
+            SUM(payment_status = 'pending') as paymentPending,
+            SUM(payment_status = 'partial') as paymentPartial
+        ")->first();
 
-        // return ResponseHelper::success([
-        //     'data' => OrderCollectionResource::collection($orders),
-        //     'pagination' => [
-        //         'current_page' => $paginator->currentPage(),
-        //         'per_page' => $paginator->perPage(),
-        //         'total' => $paginator->total(),
-        //         'last_page' => $paginator->lastPage(),
-        //     ]
-        // ], 'Orders retrieved successfully');
+        $dataCount = [
+            ['id' => 'all',              'label' => 'All Orders',        'value' => $stats->all_count],
+            ['id' => 'pending',          'label' => 'Pending Orders',    'value' => $stats->pending],
+            ['id' => 'confirmed',        'label' => 'Confirmed Orders',  'value' => $stats->confirmed],
+            ['id' => 'cancelled',        'label' => 'Cancelled Orders',  'value' => $stats->cancelled],
+            ['id' => 'invoicePending',   'label' => 'Invoice Pending',   'value' => $stats->invoicePending],
+            ['id' => 'invoiceGenerated', 'label' => 'Invoice Generated', 'value' => $stats->invoiceGenerated],
+            ['id' => 'paymentPending',   'label' => 'Payment Pending',   'value' => $stats->paymentPending],
+            ['id' => 'paymentPartial',   'label' => 'Partial Payment',   'value' => $stats->paymentPartial],
+            ['id' => 'cancelled',   'label' => 'Partial Payment',   'value' => $stats->paymentPartial],
+        ];
+
+        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully', 200, ['counts' => $dataCount]);
     }
 
     public function store(ProductOrderRequest $request)
@@ -127,7 +144,7 @@ class OrderController extends Controller
                 'modified_by_id' => auth()->user()->id,
             ];
 
-            if($data['saveChange'] !== true){
+            if($data['saveChange'] !== true && !$request->filled('isModify')){
                 $orderData['status'] = 'confirmed';
             }
 
@@ -150,22 +167,32 @@ class OrderController extends Controller
                 Generate Invoice
             */
             // Prepare invoice data
-            $invoiceData = [
-                'order_id' => $order->id,
-                'subtotal' => $order->subtotal,
-                'tax' => $order->tax,
-                'total' => $order->total,
-                'due_date' => Carbon::now(),
-                'customer_id' => $order->customer_id,
-                'created_by_id' => auth()->user()->id,
-            ];
+            if (!$request->filled('isModify')) {
+                $invoiceData = [
+                    'order_id' => $order->id,
+                    'subtotal' => $order->subtotal,
+                    'tax' => $order->tax,
+                    'total' => $order->total,
+                    'due_date' => Carbon::now(),
+                    'customer_id' => $order->customer_id,
+                    'created_by_id' => auth()->user()->id,
+                ];
 
-            // Create invoice
-            Invoice::create($invoiceData);
+                // Create invoice
+                Invoice::create($invoiceData);
 
-            // Update order invoice status
-            $order->invoice_status = 'generated';
-            $order->update();
+                // Update order invoice status
+                $order->invoice_status = 'generated';
+                $order->update();
+            }
+
+            if (!empty($data['discount']['type']) && !empty($data['discount']['value'])) {
+                Discount::create([
+                    "type" => $data['discount']['type'],
+                    "value" => $data['discount']['value'],
+                    "order_id" => $id
+                ]);
+            }
 
             DB::commit();
 
@@ -179,15 +206,29 @@ class OrderController extends Controller
         }
     }
 
-
-
     public function destroy($id)
     {
         $order = Order::find($id);
         if (!$order) return ResponseHelper::error('Order not found', 404);
 
         $order->delete();
-        return ResponseHelper::success('Order deleted successfully');
+        return ResponseHelper::success([],'Order deleted successfully');
+    }
+
+    public function cancelOrder($id){
+        $order = Order::find($id);
+        if (!$order) return ResponseHelper::error('Order not found', 404);
+
+        try {
+            $order->status = 'cancelled';
+            $order->update();
+
+            $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
+
+            return ResponseHelper::success($order,'Order canceled successfully');
+        } catch (\Throwable $th) {
+            return ResponseHelper::error($th->getMessage(), 500);
+        }
     }
 
     // Order item
@@ -241,7 +282,7 @@ class OrderController extends Controller
         $orderItem = OrderItem::find($data['itemId']);
         if (!$orderItem) return ResponseHelper::error('Item not found', 404);
 
-        if ($orderItem->order_id !== $order->id) return ResponseHelper::error('Item not found', 404);
+        if ((int) $orderItem->order_id !== (int) $order->id) return ResponseHelper::error('Item not found', 404);
 
         try {
             $orderItem->delete();
@@ -252,6 +293,36 @@ class OrderController extends Controller
             DB::rollBack();
             return ResponseHelper::error($e->getMessage(), 500);
         }
+    }
+
+    private function buildQuery(Request $request)
+    {
+        return Order::with(['customer', 'salesRep', 'items.product:id,thumbnail'])
+        ->when($request->search, fn ($q) =>
+            $q->where('order_id', 'like', "%".$request->search."%")
+        )
+        ->when($request->status === 'pending', fn ($q) =>
+            $q->where('status', 'pending')
+        )
+        ->when($request->status === 'confirmed', fn ($q) =>
+            $q->where('status', 'confirmed')
+        )
+        ->when($request->status === 'cancelled', fn ($q) =>
+            $q->where('status', 'cancelled')
+        )
+        ->when($request->status === 'invoice_pending', fn ($q) =>
+            $q->where('invoice_status', 'pending')
+        )
+        ->when($request->status === 'invoice_generated', fn ($q) =>
+            $q->where('invoice_status', 'generated')
+        )
+        ->when($request->status === 'payment_pending', fn ($q) =>
+            $q->where('payment_status', 'pending')
+        )
+        ->when($request->status === 'payment_partial', fn ($q) =>
+            $q->where('payment_status', 'partial')
+        )
+        ->orderBy('id', 'desc');
     }
 
 }

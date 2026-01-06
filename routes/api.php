@@ -110,6 +110,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}', [OrderController::class, 'update']);
             Route::post('/{id}/add-more-item', [OrderController::class, 'addMoreOrderItem']);
             Route::post('/{id}/remove-item', [OrderController::class, 'removeOrderItem']);
+            Route::post('/{id}/cancel', [OrderController::class, 'cancelOrder']);
             Route::delete('/{id}', [OrderController::class, 'destroy']);
         });
 
