@@ -152,13 +152,81 @@ class SalesRepresentativeController extends Controller
         return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
     }
 
-    public function getMyOrders(){
+    public function getMyOrders(Request $request){
+
+        $query = $this->buildQuery($request);
+
+        // Get paginated results based on current page
+        $perPage = $request->per_page ?? 10;
+        $page = $request->page ?? 1;
+
+        // Manually paginate for export
+        $orders = $query->paginate($perPage, ['*'], 'page', $page);
+
+        $stats = Order::selectRaw("
+            COUNT(*) as all_count,
+            SUM(status = 'pending') as pending,
+            SUM(status = 'confirmed') as confirmed,
+            SUM(status = 'cancelled') as cancelled,
+            SUM(status = 'ready_to_ship') as ready_to_ship,
+            SUM(status = 'shipped') as shipped,
+            SUM(status = 'delivered') as delivered,
+            SUM(payment_status = 'pending') as paymentPending,
+            SUM(payment_status = 'partial') as paymentPartial,
+            SUM(payment_status = 'paid') as paymentPaid
+        ")->first();
+
+        $dataCount = [
+            ['id' => 'all',              'label' => 'All Orders',        'value' => $stats->all_count],
+            ['id' => 'pending',          'label' => 'Pending Orders',    'value' => $stats->pending],
+            ['id' => 'confirmed',        'label' => 'Confirmed Orders',  'value' => $stats->confirmed],
+            ['id' => 'ready_to_ship',    'label' => 'Ready To Ship',  'value' => $stats->ready_to_ship],
+            ['id' => 'shipped',          'label' => 'Shipped',   'value' => $stats->shipped],
+            ['id' => 'delivered',        'label' => 'Delivered', 'value' => $stats->delivered],
+            ['id' => 'paymentPending',   'label' => 'Payment Pending',   'value' => $stats->paymentPending],
+            ['id' => 'paymentPartial',   'label' => 'Partial Payment',   'value' => $stats->paymentPartial],
+            ['id' => 'paymentPaid',      'label' => 'Paid Payment',      'value' => $stats->paymentPaid],
+            ['id' => 'cancelled',        'label' => 'Cancelled Orders',  'value' => $stats->cancelled],
+        ];
+
+        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully', 200, ['counts' => $dataCount]);
+    }
+
+    private function buildQuery(Request $request)
+    {
         $salesRepId = auth()->user()->id;
-
-        $orders = Order::where('sales_rep_id', $salesRepId)->with(['items', 'customer', 'items.product:id,thumbnail'])->orderBy('id', 'desc')->get() ?? [];
-
-        if (!count($orders)) return ResponseHelper::error('Orders not found', 404);
-
-        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully');
+        return Order::where('sales_rep_id', $salesRepId)
+        ->with(['items', 'customer', 'items.product:id,thumbnail'])
+        ->when($request->search, fn ($q) =>
+            $q->where('order_id', 'like', "%".$request->search."%")
+        )
+        ->when($request->status === 'pending', fn ($q) =>
+            $q->where('status', 'pending')
+        )
+        ->when($request->status === 'confirmed', fn ($q) =>
+            $q->where('status', 'confirmed')
+        )
+        ->when($request->status === 'cancelled', fn ($q) =>
+            $q->where('status', 'cancelled')
+        )
+        ->when($request->status === 'paymentPending', fn ($q) =>
+            $q->where('payment_status', 'pending')
+        )
+        ->when($request->status === 'paymentPaid', fn ($q) =>
+            $q->where('payment_status', 'paid')
+        )
+        ->when($request->status === 'paymentPartial', fn ($q) =>
+            $q->where('payment_status', 'partial')
+        )
+        ->when($request->status === 'ready_to_ship', fn ($q) =>
+            $q->where('status', 'ready_to_ship')
+        )
+        ->when($request->status === 'shipped', fn ($q) =>
+            $q->where('status', 'shipped')
+        )
+        ->when($request->status === 'delivered', fn ($q) =>
+            $q->where('status', 'delivered')
+        )
+        ->orderBy('id', 'desc');
     }
 }

@@ -51,19 +51,20 @@ class OrderController extends Controller
             SUM(invoice_status = 'pending') as invoicePending,
             SUM(invoice_status = 'generated') as invoiceGenerated,
             SUM(payment_status = 'pending') as paymentPending,
-            SUM(payment_status = 'partial') as paymentPartial
+            SUM(payment_status = 'partial') as paymentPartial,
+            SUM(payment_status = 'paid') as paymentPaid
         ")->first();
 
         $dataCount = [
             ['id' => 'all',              'label' => 'All Orders',        'value' => $stats->all_count],
             ['id' => 'pending',          'label' => 'Pending Orders',    'value' => $stats->pending],
             ['id' => 'confirmed',        'label' => 'Confirmed Orders',  'value' => $stats->confirmed],
-            ['id' => 'cancelled',        'label' => 'Cancelled Orders',  'value' => $stats->cancelled],
             ['id' => 'invoicePending',   'label' => 'Invoice Pending',   'value' => $stats->invoicePending],
             ['id' => 'invoiceGenerated', 'label' => 'Invoice Generated', 'value' => $stats->invoiceGenerated],
             ['id' => 'paymentPending',   'label' => 'Payment Pending',   'value' => $stats->paymentPending],
             ['id' => 'paymentPartial',   'label' => 'Partial Payment',   'value' => $stats->paymentPartial],
-            ['id' => 'cancelled',   'label' => 'Partial Payment',   'value' => $stats->paymentPartial],
+            ['id' => 'paymentPaid',      'label' => 'Paid Payment',      'value' => $stats->paymentPaid],
+            ['id' => 'cancelled',        'label' => 'Cancelled Orders',  'value' => $stats->cancelled],
         ];
 
         return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully', 200, ['counts' => $dataCount]);
@@ -310,17 +311,26 @@ class OrderController extends Controller
         ->when($request->status === 'cancelled', fn ($q) =>
             $q->where('status', 'cancelled')
         )
-        ->when($request->status === 'invoice_pending', fn ($q) =>
+        ->when($request->status === 'invoicePending', fn ($q) =>
             $q->where('invoice_status', 'pending')
         )
-        ->when($request->status === 'invoice_generated', fn ($q) =>
+        ->when($request->status === 'invoiceGenerated', fn ($q) =>
             $q->where('invoice_status', 'generated')
         )
-        ->when($request->status === 'payment_pending', fn ($q) =>
+        ->when($request->status === 'paymentPending', fn ($q) =>
             $q->where('payment_status', 'pending')
         )
-        ->when($request->status === 'payment_partial', fn ($q) =>
+        ->when($request->status === 'paymentPaid', fn ($q) =>
+            $q->where('payment_status', 'paid')
+        )
+        ->when($request->status === 'paymentPartial', fn ($q) =>
             $q->where('payment_status', 'partial')
+        )
+        ->when($request->fromDate, fn ($q) =>
+            $q->whereDate('created_at', '>=', $request->fromDate)
+        )
+        ->when($request->toDate, fn ($q) =>
+            $q->whereDate('created_at', '<=', $request->toDate)
         )
         ->orderBy('id', 'desc');
     }
