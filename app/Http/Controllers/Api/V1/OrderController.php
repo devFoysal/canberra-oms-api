@@ -42,32 +42,15 @@ class OrderController extends Controller
 
         // Manually paginate for export
         $orders = $query->paginate($perPage, ['*'], 'page', $page);
-
-        $stats = Order::selectRaw("
-            COUNT(*) as all_count,
-            SUM(status = 'pending') as pending,
-            SUM(status = 'confirmed') as confirmed,
-            SUM(status = 'cancelled') as cancelled,
-            SUM(invoice_status = 'pending') as invoicePending,
-            SUM(invoice_status = 'generated') as invoiceGenerated,
-            SUM(payment_status = 'pending') as paymentPending,
-            SUM(payment_status = 'partial') as paymentPartial,
-            SUM(payment_status = 'paid') as paymentPaid
-        ")->first();
+        $summary = $this->buildSummary($request);
+        $totalAmount = $this->buildTotalAmount($request);
 
         $dataCount = [
-            ['id' => 'all',              'label' => 'All Orders',        'value' => $stats->all_count],
-            ['id' => 'pending',          'label' => 'Pending Orders',    'value' => $stats->pending],
-            ['id' => 'confirmed',        'label' => 'Confirmed Orders',  'value' => $stats->confirmed],
-            ['id' => 'invoicePending',   'label' => 'Invoice Pending',   'value' => $stats->invoicePending],
-            ['id' => 'invoiceGenerated', 'label' => 'Invoice Generated', 'value' => $stats->invoiceGenerated],
-            ['id' => 'paymentPending',   'label' => 'Payment Pending',   'value' => $stats->paymentPending],
-            ['id' => 'paymentPartial',   'label' => 'Partial Payment',   'value' => $stats->paymentPartial],
-            ['id' => 'paymentPaid',      'label' => 'Paid Payment',      'value' => $stats->paymentPaid],
-            ['id' => 'cancelled',        'label' => 'Cancelled Orders',  'value' => $stats->cancelled],
+            "counts" => $summary,
+            "totalAmount" => $totalAmount,
         ];
 
-        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully', 200, ['counts' => $dataCount]);
+        return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully', 200, $dataCount);
     }
 
     public function store(ProductOrderRequest $request)
@@ -296,43 +279,118 @@ class OrderController extends Controller
         }
     }
 
+    private function baseQuery(Request $request)
+    {
+        return Order::query()
+            ->with(['customer', 'salesRep', 'items.product:id,thumbnail'])
+
+            ->when($request->search, function ($q) use ($request) {
+                $search = $request->search;
+
+                $q->where(function ($query) use ($search) {
+                    if (preg_match('/^[1-9]/', $search)) {
+                        $query->where('order_id', "ORD-{$search}");
+                    } else {
+                        $query->whereHas('customer', function ($customerQuery) use ($search) {
+                            $customerQuery->where('name', 'like', "%{$search}%")
+                                        ->orWhere('mobile_number', 'like', "%{$search}%");
+                        });
+                    }
+                });
+            })
+
+            // Order Status
+            ->when($request->status === 'pending', fn ($q) => $q->where('status', 'pending'))
+            ->when($request->status === 'confirmed', fn ($q) => $q->where('status', 'confirmed'))
+            ->when($request->status === 'cancelled', fn ($q) => $q->where('status', 'cancelled'))
+
+            // Invoice Status
+            ->when($request->status === 'invoicePending', fn ($q) => $q->where('invoice_status', 'pending'))
+            ->when($request->status === 'invoiceGenerated', fn ($q) => $q->where('invoice_status', 'generated'))
+
+            // Payment Status
+            ->when($request->status === 'paymentPending', fn ($q) => $q->where('payment_status', 'pending'))
+            ->when($request->status === 'paymentPaid', fn ($q) => $q->where('payment_status', 'paid'))
+            ->when($request->status === 'paymentPartial', fn ($q) => $q->where('payment_status', 'partial'))
+
+            // Waiting Approval
+            ->when($request->status === 'waitingApproval', function ($q) {
+                $q->whereHas('payments', fn ($p) => $p->where('status', 'pending'));
+            })
+
+            // Date Filters
+            ->when($request->fromDate && $request->toDate, fn ($q) =>
+                $q->whereBetween('created_at', [
+                    $request->fromDate . ' 00:00:00',
+                    $request->toDate . ' 23:59:59'
+                ])
+            )
+            ->when($request->fromDate && !$request->toDate, fn ($q) =>
+                $q->whereDate('created_at', $request->fromDate)
+            )
+            ->when($request->toDate && !$request->fromDate, fn ($q) =>
+                $q->whereDate('created_at', $request->toDate)
+            );
+    }
+
     private function buildQuery(Request $request)
     {
-        return Order::with(['customer', 'salesRep', 'items.product:id,thumbnail'])
-        ->when($request->search, fn ($q) =>
-            $q->where('order_id', 'like', "%".$request->search."%")
-        )
-        ->when($request->status === 'pending', fn ($q) =>
-            $q->where('status', 'pending')
-        )
-        ->when($request->status === 'confirmed', fn ($q) =>
-            $q->where('status', 'confirmed')
-        )
-        ->when($request->status === 'cancelled', fn ($q) =>
-            $q->where('status', 'cancelled')
-        )
-        ->when($request->status === 'invoicePending', fn ($q) =>
-            $q->where('invoice_status', 'pending')
-        )
-        ->when($request->status === 'invoiceGenerated', fn ($q) =>
-            $q->where('invoice_status', 'generated')
-        )
-        ->when($request->status === 'paymentPending', fn ($q) =>
-            $q->where('payment_status', 'pending')
-        )
-        ->when($request->status === 'paymentPaid', fn ($q) =>
-            $q->where('payment_status', 'paid')
-        )
-        ->when($request->status === 'paymentPartial', fn ($q) =>
-            $q->where('payment_status', 'partial')
-        )
-        ->when($request->fromDate, fn ($q) =>
-            $q->whereDate('created_at', '>=', $request->fromDate)
-        )
-        ->when($request->toDate, fn ($q) =>
-            $q->whereDate('created_at', '<=', $request->toDate)
-        )
+        return $this->baseQuery($request)
         ->orderBy('id', 'desc');
+    }
+
+    private function buildSummary(Request $request)
+    {
+        $query = $this->baseQuery($request)->getQuery();
+
+        // Get aggregated stats
+        $stats = $query->selectRaw("
+            COUNT(*) as all_count,
+
+            SUM(status = 'pending') as pending,
+            SUM(status = 'confirmed') as confirmed,
+            SUM(status = 'cancelled') as cancelled,
+
+            SUM(invoice_status = 'pending') as invoicePending,
+            SUM(invoice_status = 'generated') as invoiceGenerated,
+
+            SUM(payment_status = 'pending') as paymentPending,
+            SUM(payment_status = 'partial') as paymentPartial,
+            SUM(payment_status = 'paid') as paymentPaid,
+
+            SUM(
+                EXISTS (
+                    SELECT 1
+                    FROM payments
+                    WHERE payments.order_id = orders.id
+                    AND payments.status = 'pending'
+                )
+            ) as waitingApproval
+        ")->first();
+
+
+        // Build summary array
+        return [
+            ['id' => 'all',              'label' => 'All Orders',        'value' => $stats->all_count],
+            ['id' => 'pending',          'label' => 'Pending Orders',    'value' => $stats->pending],
+            ['id' => 'confirmed',        'label' => 'Confirmed Orders',  'value' => $stats->confirmed],
+            ['id' => 'invoicePending',   'label' => 'Invoice Pending',   'value' => $stats->invoicePending],
+            ['id' => 'invoiceGenerated', 'label' => 'Invoice Generated', 'value' => $stats->invoiceGenerated],
+            ['id' => 'paymentPending',   'label' => 'Payment Pending',   'value' => $stats->paymentPending],
+            ['id' => 'paymentPartial',   'label' => 'Partial Payment',   'value' => $stats->paymentPartial],
+            ['id' => 'paymentPaid',      'label' => 'Paid Payment',      'value' => $stats->paymentPaid],
+            ['id' => 'waitingApproval', 'label' => 'Waiting Approval', 'value' => $stats->waitingApproval],
+            ['id' => 'cancelled',        'label' => 'Cancelled Orders',  'value' => $stats->cancelled],
+        ];
+    }
+
+    private function buildTotalAmount(Request $request)
+    {
+        $total = $this->baseQuery($request)
+        ->toBase()
+        ->sum('total');
+
+        return money_format_bd(round((float) $total));
     }
 
 }

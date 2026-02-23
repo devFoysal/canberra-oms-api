@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\{
     ShippingController,
     AdminDashboardController,
     SRDashboardController,
+    LocationController,
 };
 
 // API Version 1 routes
@@ -128,9 +129,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('payments')->group(function () {
             Route::post('/', [PaymentController::class, 'store']);
             Route::get('/', [PaymentController::class, 'index']);
-            // Route::get('/{id}', [PaymentController::class, 'show']);
-            // Route::post('/{id}', [PaymentController::class, 'update']);
-            // Route::delete('/{id}', [PaymentController::class, 'destroy']);
+            Route::post('/{id}/status', [PaymentController::class, 'updateStatus']);
         });
 
          // Shipping routes
@@ -142,6 +141,21 @@ Route::prefix('v1')->group(function () {
             // Route::get('/{id}', [PaymentController::class, 'show']);
             // Route::post('/{id}', [PaymentController::class, 'update']);
             // Route::delete('/{id}', [PaymentController::class, 'destroy']);
+        });
+
+        // Location endpoints
+        Route::prefix('locations')->group(function () {
+            Route::post('/sessions', [LocationController::class, 'saveSession']);
+            Route::post('/points/bulk', [LocationController::class, 'savePoints']);
+            Route::post('/sync', [LocationController::class, 'syncData']);
+
+            Route::get('/sessions', [LocationController::class, 'getSessions']);
+            Route::get('/sessions/{sessionId}', [LocationController::class, 'getSession']);
+            Route::get('/sessions/{sessionId}/points', [LocationController::class, 'getSessionPoints']);
+            Route::get('/sessions/{sessionId}/stats', [LocationController::class, 'getSessionStats']);
+            Route::delete('/sessions/{sessionId}', [LocationController::class, 'deleteSession']);
+
+            Route::get('/user-stats', [LocationController::class, 'getUserStats']);
         });
 
         // Add more protected routes here

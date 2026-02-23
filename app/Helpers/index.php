@@ -94,3 +94,21 @@ if (!function_exists('number_to_words')) {
         }
     }
 }
+
+if (!function_exists('money_format_bd')) {
+    function money_format_bd($amount, $decimals = 2)
+    {
+        $amount = number_format((float) $amount, $decimals, '.', '');
+        [$int, $dec] = explode('.', $amount);
+
+        $last3 = substr($int, -3);
+        $rest = substr($int, 0, -3);
+
+        if ($rest !== '') {
+            $rest = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest);
+            $int = $rest . ',' . $last3;
+        }
+
+        return $decimals ? $int . '.' . $dec : $int;
+    }
+}

@@ -13,7 +13,8 @@ use App\Helpers\{
 };
 use App\Http\Requests\Api\V1\Payment\{
     CreatePaymentRequest,
-    EditPaymentRequest
+    EditPaymentRequest,
+    EditPaymentStatusRequest
 };
 
 use App\Http\Resources\Api\V1\Order\{
@@ -95,6 +96,31 @@ class PaymentController extends Controller
             return ResponseHelper::error($e->getMessage(), 500);
         }
 
+    }
+
+    public function updateStatus(EditPaymentStatusRequest $request, $id){
+        $data = $request->validated();
+
+        $payment = Payment::find($id);
+        if (!$payment) return ResponseHelper::error('Order not found', 404);
+
+        $order = Order::where('id', $payment->order_id)->first();
+        if (!$order) return ResponseHelper::error('Order not found', 404);
+
+        try {
+
+            if ($payment) {
+                $payment->status = $data['status'];
+                $payment->save();
+            }
+
+            $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
+
+            return ResponseHelper::success(new OrderResource($order), 'Payment approved', 201);
+
+        } catch (\Exception $e) {
+            return ResponseHelper::error($e->getMessage(), 500);
+        }
     }
 
     public function show($id)
