@@ -65,6 +65,18 @@ class ProductController extends Controller
         }
     }
 
+    public function getProducts()
+    {
+        if (Cache::has('productList')) {
+            return ResponseHelper::success(ProductCollectionResource::collection(Cache::get('productList')), 'Products retrieved from cache successfully');
+        } else {
+            $products = Cache::remember('productList', now()->addDays(1), function () {
+                return Product::where('status', 'active')->with('category')->orderBy('id', 'desc')->get();
+            });
+            return ResponseHelper::success(ProductCollectionResource::collection($products), 'Products retrieved successfully');
+        }
+    }
+
     /**
      * Create a new product
      *

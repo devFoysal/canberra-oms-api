@@ -28,6 +28,7 @@ class ProductCollectionResource extends JsonResource
             'salePrice' => round((float) $this->sale_price,2),
             'stock' => (int) $this->stock,
             'slug' => $this->slug,
+            'categoryId' => (string) $this->category?->id,
             'category' => new CategoryResource($this->category),
             'categoryName' => $this->category?->name,
             'status' => $this->status,

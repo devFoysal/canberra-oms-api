@@ -309,7 +309,7 @@ class OrderController extends Controller
             ->when($request->status === 'invoiceGenerated', fn ($q) => $q->where('invoice_status', 'generated'))
 
             // Payment Status
-            ->when($request->status === 'paymentPending', fn ($q) => $q->where('payment_status', 'pending'))
+            ->when($request->status === 'paymentPending',fn ($q) => $q->where('payment_status', 'pending')->where('status', '!=', 'cancelled'))
             ->when($request->status === 'paymentPaid', fn ($q) => $q->where('payment_status', 'paid'))
             ->when($request->status === 'paymentPartial', fn ($q) => $q->where('payment_status', 'partial'))
 
@@ -354,7 +354,7 @@ class OrderController extends Controller
             SUM(invoice_status = 'pending') as invoicePending,
             SUM(invoice_status = 'generated') as invoiceGenerated,
 
-            SUM(payment_status = 'pending') as paymentPending,
+            SUM(payment_status = 'pending' AND status != 'cancelled') as paymentPending,
             SUM(payment_status = 'partial') as paymentPartial,
             SUM(payment_status = 'paid') as paymentPaid,
 

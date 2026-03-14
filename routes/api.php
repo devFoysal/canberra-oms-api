@@ -101,7 +101,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [ProductController::class, 'show']);
             Route::post('/{id}', [ProductController::class, 'update']);
             Route::delete('/{id}', [ProductController::class, 'destroy']);
+
         });
+
+        Route::get('/product-lists', [ProductController::class, 'getProducts']);
 
         // Order routes
         Route::prefix('orders')->group(function () {

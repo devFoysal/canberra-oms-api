@@ -13,6 +13,7 @@ class ProductObserver
     public function created(Product $product): void
     {
         Cache::forget('products');
+        Cache::forget('productList');
     }
 
     /**
@@ -21,6 +22,7 @@ class ProductObserver
     public function updated(Product $product): void
     {
         Cache::forget('products');
+        Cache::forget('productList');
     }
 
     /**
@@ -29,6 +31,7 @@ class ProductObserver
     public function deleted(Product $product): void
     {
         Cache::forget('products');
+        Cache::forget('productList');
     }
 
     /**
