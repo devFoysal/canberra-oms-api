@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('location_points', function (Blueprint $table) {
+        Schema::create('locations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('session_id')->constrained('location_sessions')->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('point_id')->unique();
             $table->decimal('latitude', 10, 8);
             $table->decimal('longitude', 11, 8);
             $table->decimal('accuracy', 6, 2)->nullable();
@@ -28,8 +26,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['user_id', 'timestamp']);
-            $table->index(['session_id', 'timestamp']);
-            $table->index('point_id');
         });
     }
 
@@ -38,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('location_points');
+        Schema::dropIfExists('locations');
     }
 };

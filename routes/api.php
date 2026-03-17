@@ -148,17 +148,7 @@ Route::prefix('v1')->group(function () {
 
         // Location endpoints
         Route::prefix('locations')->group(function () {
-            Route::post('/sessions', [LocationController::class, 'saveSession']);
-            Route::post('/points/bulk', [LocationController::class, 'savePoints']);
-            Route::post('/sync', [LocationController::class, 'syncData']);
-
-            Route::get('/sessions', [LocationController::class, 'getSessions']);
-            Route::get('/sessions/{sessionId}', [LocationController::class, 'getSession']);
-            Route::get('/sessions/{sessionId}/points', [LocationController::class, 'getSessionPoints']);
-            Route::get('/sessions/{sessionId}/stats', [LocationController::class, 'getSessionStats']);
-            Route::delete('/sessions/{sessionId}', [LocationController::class, 'deleteSession']);
-
-            Route::get('/user-stats', [LocationController::class, 'getUserStats']);
+            Route::post('/', [LocationController::class, 'store']);
         });
 
         // Add more protected routes here
