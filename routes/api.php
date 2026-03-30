@@ -148,6 +148,7 @@ Route::prefix('v1')->group(function () {
 
         // Location endpoints
         Route::prefix('locations')->group(function () {
+            Route::get('/', [LocationController::class, 'index']);
             Route::post('/', [LocationController::class, 'store']);
         });
 

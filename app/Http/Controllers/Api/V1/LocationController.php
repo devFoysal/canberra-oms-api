@@ -10,16 +10,67 @@ use App\Helpers\{
     ResponseHelper,
 };
 
-use App\Models\Location;
+use App\Http\Resources\Api\V1\Location\{
+    LocationResource,
+    LocationCollectionResource
+};
+
+use App\Models\{
+    User,
+    Location
+};
 
 class LocationController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+         $userId = $request->userId
+        ? explode(',', $request->userId)
+        : [];
+
+        $locations = Location::query()
+            ->select([
+                'user_id',
+                'latitude',
+                'longitude',
+                'timestamp'
+            ])
+
+            ->when(!empty($userId), fn ($q) =>
+                $q->where('user_id', $userId)
+            )
+
+            ->when($request->fromDate && $request->toDate, fn ($q) =>
+                $q->whereBetween('timestamp', [
+                    $request->fromDate,
+                    $request->toDate
+                ])
+            )
+
+            ->orderBy('user_id')
+            ->orderBy('timestamp')
+            ->get()
+            ->groupBy('user_id'); // group in memory (fast enough if limited)
+
+        $users = User::whereIn('id', $locations->keys())
+            ->pluck('full_name', 'id');
+
+        $result = $locations->map(function ($items, $userId) use ($users) {
+            return [
+                'user_id' => $userId,
+                'user_name' => $users[$userId] ?? 'Unknown',
+                'locations' => $items->map(fn ($loc) => [
+                    'lat' => (float) $loc->latitude,
+                    'lng' => (float) $loc->longitude,
+                    'time' => $loc->timestamp,
+                ])->values()
+            ];
+        })->values();
+
+        return ResponseHelper::success($result, 'Location get successfully', 200);
     }
 
     /**
