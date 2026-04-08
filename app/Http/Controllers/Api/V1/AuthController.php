@@ -313,6 +313,7 @@ class AuthController extends Controller
             }
 
         } catch (\Exception $e) {
+            dd($e);
             return ResponseHelper::error('Invalid credentials', $e->getCode(), $e->getMessage());
         }
     }

@@ -64,13 +64,10 @@ class PaymentController extends Controller
                 // Total paid so far
                 $totalPaid = Payment::where('invoice_id', $invoice->id)->sum('amount_paid');
 
-                $totalPaidAmount = (float) $totalPaid;
-                $total     = (float) $invoice->total;
-
                 // Update invoice status
-                if ($totalPaidAmount <= 0) {
+                if ($totalPaid == 0) {
                     $invoice->status = 'pending';
-                } elseif ($totalPaidAmount < $total) {
+                } elseif ($totalPaid < $invoice->total) {
                     $invoice->status = 'partial';
                 } else {
                     $invoice->status = 'paid';
@@ -78,12 +75,12 @@ class PaymentController extends Controller
                 $invoice->save();
 
                 // Update order payment status
-                if ($totalPaidAmount <= 0) {
-                    $order->payment_status = 'pending';
-                } elseif ($totalPaidAmount < $total) {
+                if ($totalPaid >= $invoice->total) {
+                    $order->payment_status = 'paid';
+                } elseif ($totalPaid < $invoice->total) {
                     $order->payment_status = 'partial';
                 } else {
-                    $order->payment_status = 'paid';
+                    $order->payment_status = 'pending';
                 }
                 $order->save();
             }
