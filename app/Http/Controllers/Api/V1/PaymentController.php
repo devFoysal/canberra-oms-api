@@ -62,30 +62,48 @@ class PaymentController extends Controller
             $payment = Payment::create($paymentData);
 
             if ($payment) {
+
                 // Total paid so far
                 $totalPaid = Payment::where('invoice_id', $invoice->id)->sum('amount_paid');
 
+                // 🔽 Calculate discount for this order
+                $discountAmount = Discount::where('order_id', $order->id)->sum(function ($discount) use ($invoice) {
+                    if ($discount->type === 'percentage') {
+                        return ($invoice->total * $discount->value) / 100;
+                    }
+                    return $discount->value;
+                });
+
+                // 🔽 Final payable after discount
+                $finalTotal = max(0, $invoice->total - $discountAmount);
+
+                // -------------------------
                 // Update invoice status
+                // -------------------------
                 if ($totalPaid == 0) {
                     $invoice->status = 'pending';
-                } elseif ($totalPaid < $invoice->total) {
+                } elseif ($totalPaid < $finalTotal) {
                     $invoice->status = 'partial';
                 } else {
                     $invoice->status = 'paid';
                 }
                 $invoice->save();
 
+                // -------------------------
                 // Update order payment status
-                if ($totalPaid >= $invoice->total) {
-                    $order->payment_status = 'paid';
-                } elseif ($totalPaid < $invoice->total) {
+                // -------------------------
+                if ($totalPaid == 0) {
+                    $order->payment_status = 'pending';
+                } elseif ($totalPaid < $finalTotal) {
                     $order->payment_status = 'partial';
                 } else {
-                    $order->payment_status = 'pending';
+                    $order->payment_status = 'paid';
                 }
                 $order->save();
 
-
+                // -------------------------
+                // Store discount (if new)
+                // -------------------------
                 if (!empty($data['discountType']) && !empty($data['discountValue']) && $data['discountValue'] > 0) {
                     Discount::create([
                         "type" => $data['discountType'],
