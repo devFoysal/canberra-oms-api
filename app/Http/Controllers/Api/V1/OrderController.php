@@ -44,10 +44,12 @@ class OrderController extends Controller
         $orders = $query->paginate($perPage, ['*'], 'page', $page);
         $summary = $this->buildSummary($request);
         $totalAmount = $this->buildTotalAmount($request);
+        $totalPartialDueAmount = $this->buildTotalDueAmount($request);
 
         $dataCount = [
             "counts" => $summary,
             "totalAmount" => $totalAmount,
+            "totalPartialDueAmount" => $totalPartialDueAmount,
         ];
 
         return ResponseHelper::success(OrderCollectionResource::collection($orders), 'Orders retrieved successfully', 200, $dataCount);
@@ -67,7 +69,8 @@ class OrderController extends Controller
                 'sales_rep_id' => auth()->user()->id,
                 'subtotal' => $data['subtotal'],
                 'tax' => $data['tax'] ?? 0,
-                'total' => $data['total']
+                'total' => $data['total'],
+                'status' => 'pending'
             ];
 
             // Create order
@@ -391,6 +394,35 @@ class OrderController extends Controller
         ->sum('total');
 
         return money_format_bd(round((float) $total));
+    }
+
+    private function buildTotalDueAmount(Request $request)
+    {
+        $totalDue = $this->baseQuery($request)
+            ->where('payment_status', 'partial')
+            ->get()
+            ->sum(function ($item) {
+
+                $total = (float) $item->total;
+
+                // calculate discount
+                $discountAmount = $item->discounts->sum(function ($discount) use ($total) {
+                    if ($discount->type === 'percentage') {
+                        return ($total * (float) $discount->value) / 100;
+                    }
+                    return (float) $discount->value;
+                });
+
+                $totalAfterDiscount = $total - $discountAmount;
+
+                $paidAmount = $item->invoice
+                    ? (float) $item->invoice->payments->sum('amount_paid')
+                    : 0;
+
+                return round(max(0, $totalAfterDiscount - $paidAmount), 2);
+            });
+
+        return money_format_bd(round($totalDue));
     }
 
 }

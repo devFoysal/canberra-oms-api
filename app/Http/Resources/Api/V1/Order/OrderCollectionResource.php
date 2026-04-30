@@ -55,7 +55,6 @@ class OrderCollectionResource extends JsonResource
             "mobileNumber" => $this->mobile_number,
             "tax" => (float) $this->tax,
             "subtotal" => round((float) $this->subtotal,2),
-            // "total" => round((float) $this->total,2),
             "discountAmount" => $discountAmount,
             "total" => $totalAfterDiscount,
             "status" => status_label($this->status),
@@ -70,7 +69,7 @@ class OrderCollectionResource extends JsonResource
                 ? Carbon::parse($this->created_at)->format('d M, Y h:i A')
                 : null,
             'paidAmount' => $this->invoice
-                ? round((float) $this->invoice->payments->sum('amount_paid'),2)
+                ? round(max(0, (float) $this->invoice->payments->sum('amount_paid') - (float) $discountAmount),2)
                 : 0,
             // 'dueAmount' => $this->invoice
             // ? round(max(0, (float) $this->invoice->total - (float) $this->invoice->payments->sum('amount_paid')),2)

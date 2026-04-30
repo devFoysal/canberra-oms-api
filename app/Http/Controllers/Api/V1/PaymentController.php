@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Payment;
 use App\Models\Order;
 use App\Models\Invoice;
+use App\Models\Discount;
 use App\Helpers\{
     ResponseHelper,
     PaymentHelper
@@ -83,11 +84,20 @@ class PaymentController extends Controller
                     $order->payment_status = 'pending';
                 }
                 $order->save();
+
+
+                if (!empty($data['discountType']) && !empty($data['discountValue']) && $data['discountValue'] > 0) {
+                    Discount::create([
+                        "type" => $data['discountType'],
+                        "value" => $data['discountValue'],
+                        "order_id" => $data['orderId']
+                    ]);
+                }
             }
 
             DB::commit();
 
-            $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
+            $order->load(['customer', 'salesRep', 'items.product:id,thumbnail', 'discounts']);
 
             return ResponseHelper::success(new OrderResource($order), 'Payment successfully', 201);
 

@@ -28,6 +28,8 @@ class CreatePaymentRequest extends FormRequest
             'date'         => 'required|string|date_format:Y-m-d',
             'description'  => 'nullable|string',
             'ref'  => 'nullable|string',
+            'discountValue'  => 'nullable|numeric',
+            'discountType'  => 'nullable|string',
         ];
     }
 }
