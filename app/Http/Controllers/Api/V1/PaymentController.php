@@ -62,48 +62,58 @@ class PaymentController extends Controller
             $payment = Payment::create($paymentData);
 
             if ($payment) {
-
                 // Total paid so far
-                $totalPaid = Payment::where('invoice_id', $invoice->id)->sum('amount_paid');
+                $totalPaid = Payment::where('invoice_id', $invoice->id)
+                    ->sum('amount_paid');
 
-                // 🔽 Calculate discount for this order
-                $discountAmount = Discount::where('order_id', $order->id)->sum(function ($discount) use ($invoice) {
-                    if ($discount->type === 'percentage') {
-                        return ($invoice->total * $discount->value) / 100;
+                $totalPaid = round($totalPaid, 2);
+
+                // -------------------------
+                // Calculate discount
+                // -------------------------
+                $discountAmount = Discount::where('order_id', $order->id)
+                    ->get()
+                    ->sum(function ($discount) use ($invoice) {
+                        return $discount->type === 'percentage'
+                            ? ($invoice->total * $discount->value) / 100
+                            : $discount->value;
+                    });
+
+                $discountAmount = round($discountAmount, 2);
+
+                // -------------------------
+                // Final total
+                // -------------------------
+                $finalTotal = round(max(0, $invoice->total - $discountAmount), 2);
+
+                // -------------------------
+                // Determine status (reusable logic)
+                // -------------------------
+                $status = function ($paid, $total) {
+                    if ($paid <= 0) {
+                        return 'pending';
                     }
-                    return $discount->value;
-                });
 
-                // 🔽 Final payable after discount
-                $finalTotal = max(0, $invoice->total - $discountAmount);
+                    if ($paid < $total) {
+                        return 'partial';
+                    }
+
+                    return 'paid';
+                };
 
                 // -------------------------
-                // Update invoice status
+                // Update invoice
                 // -------------------------
-                if ($totalPaid == 0) {
-                    $invoice->status = 'pending';
-                } elseif ($totalPaid < $finalTotal) {
-                    $invoice->status = 'partial';
-                } else {
-                    $invoice->status = 'paid';
-                }
+                $invoice->status = $status($totalPaid, $finalTotal);
                 $invoice->save();
 
                 // -------------------------
-                // Update order payment status
+                // Update order
                 // -------------------------
-                if ($totalPaid == 0) {
-                    $order->payment_status = 'pending';
-                } elseif ($totalPaid < $finalTotal) {
-                    $order->payment_status = 'partial';
-                } else {
-                    $order->payment_status = 'paid';
-                }
+                $order->payment_status = $status($totalPaid, $finalTotal);
                 $order->save();
 
-                // -------------------------
-                // Store discount (if new)
-                // -------------------------
+
                 if (!empty($data['discountType']) && !empty($data['discountValue']) && $data['discountValue'] > 0) {
                     Discount::create([
                         "type" => $data['discountType'],
@@ -112,6 +122,16 @@ class PaymentController extends Controller
                     ]);
                 }
             }
+
+            \Log::info('Payment Status Debug', [
+                'invoice_id' => $invoice->id,
+                'order_id' => $order->id,
+                'invoice_total' => $invoice->total,
+                'total_paid' => $totalPaid,
+                'discount_amount' => $discountAmount,
+                'final_total' => $finalTotal,
+                'difference' => round($finalTotal - $totalPaid, 6),
+            ]);
 
             DB::commit();
 
