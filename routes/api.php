@@ -18,6 +18,12 @@ use App\Http\Controllers\Api\V1\{
     AdminDashboardController,
     SRDashboardController,
     LocationController,
+
+    // Targets
+    TargetController,
+    IdleEventController,
+    OutletVisitController,
+    ReportController
 };
 
 // API Version 1 routes
@@ -152,6 +158,61 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [LocationController::class, 'store']);
         });
 
-        // Add more protected routes here
+        // ── Targets ───────────────────────────────────────────────────────────
+
+        Route::prefix('targets')->group(function () {
+            // GET  /api/targets                  → সব targets list
+            // GET  /api/targets/achievement      → achievement summary (SR + Admin)
+            // POST /api/targets                  → নতুন target তৈরি (Admin only)
+            // PUT  /api/targets/{target}         → target update (Admin only)
+            // DELETE /api/targets/{target}       → target delete (Admin only)
+
+            Route::get('achievement', [TargetController::class, 'achievement']);
+            Route::get('/', [TargetController::class, 'index']);
+            Route::post('/', [TargetController::class, 'store']);
+            Route::put('{target}', [TargetController::class, 'update']);
+            Route::delete('{target}', [TargetController::class, 'destroy']);
+        });
+
+        // ── Idle Events ───────────────────────────────────────────────────────
+
+        Route::prefix('idle-events')->group(function () {
+            // GET  /api/idle-events              → list (Admin only)
+            // GET  /api/idle-events/my-status    → current SR এর idle status
+            // POST /api/idle-events/log          → SR নিজে idle log করে
+            // POST /api/idle-events/{id}/resolve → Admin resolve করে
+
+            Route::get('my-status', [IdleEventController::class, 'myStatus']);
+            Route::post('log', [IdleEventController::class, 'log']);
+            Route::get('/', [IdleEventController::class, 'index'])->middleware('role:admin');
+            Route::post('{idleEvent}/resolve', [IdleEventController::class, 'resolve'])->middleware('role:admin');
+        });
+
+        // ── Outlet Visits ─────────────────────────────────────────────────────
+
+        Route::prefix('outlet-visits')->group(function () {
+            // GET  /api/outlet-visits            → list (SR = own, Admin = all)
+            // GET  /api/outlet-visits/targets    → visit targets vs achieved
+            // POST /api/outlet-visits            → নতুন visit log (SR only)
+
+            Route::get('targets', [OutletVisitController::class, 'targets']);
+            Route::get('/', [OutletVisitController::class, 'index']);
+            Route::post('/', [OutletVisitController::class, 'store']);
+        });
+
+        // ── Reports (Admin only) ──────────────────────────────────────────────
+
+        Route::prefix('reports')->middleware('role:admin')->group(function () {
+            // GET /api/reports/sales             → period-wise bar chart data
+            // GET /api/reports/sales-reps        → SR-wise summary table
+            // GET /api/reports/areas             → area-wise sales
+            // GET /api/reports/companies         → company/brand-wise sales
+
+            Route::get('sales',      [ReportController::class, 'sales']);
+            Route::get('sales-reps', [ReportController::class, 'salesReps']);
+            Route::get('areas',      [ReportController::class, 'areas']);
+            Route::get('companies',  [ReportController::class, 'companies']);
+        });
+
     });
 });
