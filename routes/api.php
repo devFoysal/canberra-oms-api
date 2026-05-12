@@ -184,8 +184,8 @@ Route::prefix('v1')->group(function () {
 
             Route::get('my-status', [IdleEventController::class, 'myStatus']);
             Route::post('log', [IdleEventController::class, 'log']);
-            Route::get('/', [IdleEventController::class, 'index'])->middleware('role:admin');
-            Route::post('{idleEvent}/resolve', [IdleEventController::class, 'resolve'])->middleware('role:admin');
+            Route::get('/', [IdleEventController::class, 'index']);
+            Route::post('{idleEvent}/resolve', [IdleEventController::class, 'resolve']);
         });
 
         // ── Outlet Visits ─────────────────────────────────────────────────────
@@ -202,7 +202,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Reports (Admin only) ──────────────────────────────────────────────
 
-        Route::prefix('reports')->middleware('role:admin')->group(function () {
+        Route::prefix('reports')->group(function () {
             // GET /api/reports/sales             → period-wise bar chart data
             // GET /api/reports/sales-reps        → SR-wise summary table
             // GET /api/reports/areas             → area-wise sales

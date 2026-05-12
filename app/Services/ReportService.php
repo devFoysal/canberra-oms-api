@@ -2,36 +2,33 @@
 
 namespace App\Services;
 
+use App\Models\IdleEvent;
 use App\Models\Order;
 use App\Models\OutletVisit;
-use App\Models\IdleEvent;
 use App\Models\QuarterlyTarget;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ReportService
 {
     // ══════════════════════════════════════════════════════════════════════
-    // SALES REPORT — period wise bar chart data
+    // SALES REPORT
     // ══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Bar chart এর জন্য data — label, target, achieved, orders, visits।
-     *
-     * @param string $period  'daily'|'weekly'|'monthly'
-     * @param int|null $salesRepId  null = সব SR মিলিয়ে
-     * @param string|null $startDate
-     * @param string|null $endDate
-     */
     public function getSalesReport(
         string $period,
         ?int $salesRepId = null,
         ?string $startDate = null,
         ?string $endDate = null
     ): array {
-        $start = $startDate ? Carbon::parse($startDate) : Carbon::now()->subMonths(3);
-        $end   = $endDate   ? Carbon::parse($endDate)   : Carbon::now();
+        $start = $startDate
+            ? Carbon::parse($startDate)->startOfDay()
+            : Carbon::now()->subMonths(3)->startOfMonth();
+
+        $end = $endDate
+            ? Carbon::parse($endDate)->endOfDay()
+            : Carbon::now()->endOfDay();
 
         return match ($period) {
             'daily'   => $this->getDailyReport($salesRepId, $start, $end),
@@ -41,28 +38,41 @@ class ReportService
         };
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // DAILY REPORT
+    // ══════════════════════════════════════════════════════════════════════
+
     private function getDailyReport(?int $salesRepId, Carbon $start, Carbon $end): array
     {
         $items = [];
         $current = $start->copy();
 
         while ($current->lte($end)) {
+
             $dayStart = $current->copy()->startOfDay();
             $dayEnd   = $current->copy()->endOfDay();
 
-            $ordersQuery = Order::whereBetween('created_at', [$dayStart, $dayEnd])
+            $ordersQuery = Order::query()
+                ->whereBetween('created_at', [$dayStart, $dayEnd])
                 ->where('status', '!=', 'cancelled');
-            if ($salesRepId) $ordersQuery->where('sales_rep_id', $salesRepId);
 
-            $visitsQuery = OutletVisit::whereBetween('visited_at', [$dayStart, $dayEnd]);
-            if ($salesRepId) $visitsQuery->where('sales_rep_id', $salesRepId);
+            if ($salesRepId) {
+                $ordersQuery->where('sales_rep_id', $salesRepId);
+            }
+
+            $visitsQuery = OutletVisit::query()
+                ->whereBetween('visited_at', [$dayStart, $dayEnd]);
+
+            if ($salesRepId) {
+                $visitsQuery->where('sales_rep_id', $salesRepId);
+            }
 
             $items[] = [
-                'label'          => $current->format('d M'),
-                'target_amount'  => $this->getTargetForRange($salesRepId, $dayStart, $dayEnd),
-                'achieved_amount'=> (float) $ordersQuery->sum('total_amount'),
-                'orders_count'   => $ordersQuery->count(),
-                'outlet_visits'  => $visitsQuery->count(),
+                'label'            => $current->format('d M'),
+                'targetAmount'     => $this->getTargetForRange($salesRepId, $dayStart, $dayEnd),
+                'achievedAmount'   => (float) (clone $ordersQuery)->sum('total'),
+                'ordersCount'      => (clone $ordersQuery)->count(),
+                'outletVisits'     => (clone $visitsQuery)->count(),
             ];
 
             $current->addDay();
@@ -71,29 +81,50 @@ class ReportService
         return $items;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // WEEKLY REPORT
+    // ══════════════════════════════════════════════════════════════════════
+
     private function getWeeklyReport(?int $salesRepId, Carbon $start, Carbon $end): array
     {
         $items = [];
-        $current = $start->copy()->startOfWeek();
+
+        $current = $start->copy()->startOfWeek(Carbon::SATURDAY);
 
         while ($current->lte($end)) {
-            $weekStart = $current->copy();
-            $weekEnd   = $current->copy()->endOfWeek();
-            if ($weekEnd->gt($end)) $weekEnd = $end->copy();
 
-            $ordersQuery = Order::whereBetween('created_at', [$weekStart, $weekEnd])
+            $weekStart = $current->copy()->startOfDay();
+
+            $weekEnd = $current
+                ->copy()
+                ->endOfWeek(Carbon::FRIDAY)
+                ->endOfDay();
+
+            if ($weekEnd->gt($end)) {
+                $weekEnd = $end->copy();
+            }
+
+            $ordersQuery = Order::query()
+                ->whereBetween('created_at', [$weekStart, $weekEnd])
                 ->where('status', '!=', 'cancelled');
-            if ($salesRepId) $ordersQuery->where('sales_rep_id', $salesRepId);
 
-            $visitsQuery = OutletVisit::whereBetween('visited_at', [$weekStart, $weekEnd]);
-            if ($salesRepId) $visitsQuery->where('sales_rep_id', $salesRepId);
+            if ($salesRepId) {
+                $ordersQuery->where('sales_rep_id', $salesRepId);
+            }
+
+            $visitsQuery = OutletVisit::query()
+                ->whereBetween('visited_at', [$weekStart, $weekEnd]);
+
+            if ($salesRepId) {
+                $visitsQuery->where('sales_rep_id', $salesRepId);
+            }
 
             $items[] = [
-                'label'          => 'W' . $current->weekOfYear . ' ' . $current->format('M'),
-                'target_amount'  => $this->getTargetForRange($salesRepId, $weekStart, $weekEnd),
-                'achieved_amount'=> (float) $ordersQuery->sum('total_amount'),
-                'orders_count'   => $ordersQuery->count(),
-                'outlet_visits'  => $visitsQuery->count(),
+                'label'            => 'W' . $weekStart->format('W') . ' ' . $weekStart->format('M'),
+                'targetAmount'     => $this->getTargetForRange($salesRepId, $weekStart, $weekEnd),
+                'achievedAmount'   => (float) (clone $ordersQuery)->sum('total'),
+                'ordersCount'      => (clone $ordersQuery)->count(),
+                'outletVisits'     => (clone $visitsQuery)->count(),
             ];
 
             $current->addWeek();
@@ -102,28 +133,46 @@ class ReportService
         return $items;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // MONTHLY REPORT
+    // ══════════════════════════════════════════════════════════════════════
+
     private function getMonthlyReport(?int $salesRepId, Carbon $start, Carbon $end): array
     {
         $items = [];
+
         $current = $start->copy()->startOfMonth();
 
         while ($current->lte($end)) {
-            $monthStart = $current->copy()->startOfMonth();
-            $monthEnd   = $current->copy()->endOfMonth();
 
-            $ordersQuery = Order::whereBetween('created_at', [$monthStart, $monthEnd])
+            $monthStart = $current->copy()->startOfMonth()->startOfDay();
+            $monthEnd   = $current->copy()->endOfMonth()->endOfDay();
+
+            if ($monthEnd->gt($end)) {
+                $monthEnd = $end->copy();
+            }
+
+            $ordersQuery = Order::query()
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
                 ->where('status', '!=', 'cancelled');
-            if ($salesRepId) $ordersQuery->where('sales_rep_id', $salesRepId);
 
-            $visitsQuery = OutletVisit::whereBetween('visited_at', [$monthStart, $monthEnd]);
-            if ($salesRepId) $visitsQuery->where('sales_rep_id', $salesRepId);
+            if ($salesRepId) {
+                $ordersQuery->where('sales_rep_id', $salesRepId);
+            }
+
+            $visitsQuery = OutletVisit::query()
+                ->whereBetween('visited_at', [$monthStart, $monthEnd]);
+
+            if ($salesRepId) {
+                $visitsQuery->where('sales_rep_id', $salesRepId);
+            }
 
             $items[] = [
-                'label'          => $current->format('M Y'),
-                'target_amount'  => $this->getTargetForRange($salesRepId, $monthStart, $monthEnd),
-                'achieved_amount'=> (float) $ordersQuery->sum('total_amount'),
-                'orders_count'   => $ordersQuery->count(),
-                'outlet_visits'  => $visitsQuery->count(),
+                'label'            => $current->format('M Y'),
+                'targetAmount'     => $this->getTargetForRange($salesRepId, $monthStart, $monthEnd),
+                'achievedAmount'   => (float) (clone $ordersQuery)->sum('total'),
+                'ordersCount'      => (clone $ordersQuery)->count(),
+                'outletVisits'     => (clone $visitsQuery)->count(),
             ];
 
             $current->addMonth();
@@ -133,147 +182,187 @@ class ReportService
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // SR-WISE REPORT
+    // SALES REP REPORT
     // ══════════════════════════════════════════════════════════════════════
 
-    public function getSalesRepReport(string $period, ?string $startDate, ?string $endDate): array
-    {
-        $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfMonth();
-        $end   = $endDate   ? Carbon::parse($endDate)->endOfDay()     : Carbon::now()->endOfMonth();
+    public function getSalesRepReport(
+        string $period,
+        ?string $startDate,
+        ?string $endDate
+    ): array {
 
-        $salesReps = User::where('role', 'sales_rep')->where('is_active', true)->get();
+        $start = $startDate
+            ? Carbon::parse($startDate)->startOfDay()
+            : Carbon::now()->startOfMonth();
 
-        return $salesReps->map(function (User $sr) use ($start, $end) {
-            $sales = (float) Order::where('sales_rep_id', $sr->id)
-                ->whereBetween('created_at', [$start, $end])
-                ->where('status', '!=', 'cancelled')
-                ->sum('total_amount');
+        $end = $endDate
+            ? Carbon::parse($endDate)->endOfDay()
+            : Carbon::now()->endOfMonth();
 
-            $orders = Order::where('sales_rep_id', $sr->id)
-                ->whereBetween('created_at', [$start, $end])
-                ->where('status', '!=', 'cancelled')
-                ->count();
+        $salesReps = User::role('sales_representative')
+            ->where('status', 'active')
+            ->get();
 
-            $visits = OutletVisit::where('sales_rep_id', $sr->id)
-                ->whereBetween('visited_at', [$start, $end])
-                ->count();
+        return $salesReps
+            ->map(function (User $sr) use ($start, $end) {
 
-            $idles = IdleEvent::where('sales_rep_id', $sr->id)
-                ->whereBetween('start_time', [$start, $end])
-                ->count();
+                $ordersQuery = Order::query()
+                    ->where('sales_rep_id', $sr->id)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->where('status', '!=', 'cancelled');
 
-            $target = $this->getTargetForRange($sr->id, $start, $end);
-            $pct = $target > 0 ? round(($sales / $target) * 100, 2) : 0;
+                $sales = (float) (clone $ordersQuery)->sum('total');
 
-            return [
-                'sales_rep_id'         => $sr->id,
-                'sales_rep_name'       => $sr->name,
-                'total_sales'          => $sales,
-                'target_amount'        => $target,
-                'achieved_percentage'  => $pct,
-                'orders_count'         => $orders,
-                'outlet_visits'        => $visits,
-                'idle_count'           => $idles,
-            ];
-        })->sortByDesc('total_sales')->values()->toArray();
+                $target = $this->getTargetForRange($sr->id, $start, $end);
+
+                return [
+                    'salesRepId'         => $sr->id,
+                    'salesRepName'       => $sr->name,
+                    'totalSales'         => $sales,
+                    'targetAmount'       => $target,
+                    'achievedPercentage' => $target > 0
+                        ? round(($sales / $target) * 100, 2)
+                        : 0,
+                    'ordersCount'        => (clone $ordersQuery)->count(),
+
+                    'outletVisits' => OutletVisit::where('sales_rep_id', $sr->id)
+                        ->whereBetween('visited_at', [$start, $end])
+                        ->count(),
+
+                    'idleCount' => IdleEvent::where('sales_rep_id', $sr->id)
+                        ->whereBetween('start_time', [$start, $end])
+                        ->count(),
+                ];
+            })
+            ->sortByDesc('totalSales')
+            ->values()
+            ->toArray();
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // AREA-WISE REPORT
+    // AREA REPORT
     // ══════════════════════════════════════════════════════════════════════
 
     public function getAreaReport(?string $startDate, ?string $endDate): array
     {
-        $start = $startDate ? Carbon::parse($startDate) : Carbon::now()->startOfMonth();
-        $end   = $endDate   ? Carbon::parse($endDate)   : Carbon::now();
+        $start = $startDate
+            ? Carbon::parse($startDate)->startOfDay()
+            : Carbon::now()->startOfMonth();
 
-        // Orders এ area field থাকলে সেখান থেকে, না হলে outlet_visits থেকে
-        $areas = OutletVisit::whereBetween('visited_at', [$start, $end])
-            ->selectRaw('area, COUNT(*) as outlet_count, COUNT(DISTINCT sales_rep_id) as active_srs')
+        $end = $endDate
+            ? Carbon::parse($endDate)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $areas = OutletVisit::query()
+            ->whereBetween('visited_at', [$start, $end])
+            ->selectRaw('
+                area,
+                COUNT(*) as outlet_count,
+                COUNT(DISTINCT sales_rep_id) as active_srs
+            ')
             ->groupBy('area')
             ->get();
 
-        return $areas->map(function ($areaData) use ($start, $end) {
-            $sales = (float) Order::whereHas('customer', function ($q) use ($areaData) {
-                    $q->where('area', $areaData->area);
-                })
-                ->whereBetween('created_at', [$start, $end])
-                ->where('status', '!=', 'cancelled')
-                ->sum('total_amount');
+        return $areas
+            ->map(function ($areaData) use ($start, $end) {
 
-            $orders = Order::whereHas('customer', function ($q) use ($areaData) {
-                    $q->where('area', $areaData->area);
-                })
-                ->whereBetween('created_at', [$start, $end])
-                ->where('status', '!=', 'cancelled')
-                ->count();
+                $ordersQuery = Order::query()
+                    ->whereHas('customer', function ($q) use ($areaData) {
+                        $q->where('area', $areaData->area);
+                    })
+                    ->whereBetween('created_at', [$start, $end])
+                    ->where('status', '!=', 'cancelled');
 
-            return [
-                'area'         => $areaData->area,
-                'total_sales'  => $sales,
-                'orders_count' => $orders,
-                'active_srs'   => $areaData->active_srs,
-                'outlet_count' => $areaData->outlet_count,
-            ];
-        })->sortByDesc('total_sales')->values()->toArray();
+                return [
+                    'area'         => $areaData->area,
+                    'totalSales'   => (float) (clone $ordersQuery)->sum('total'),
+                    'ordersCount'  => (clone $ordersQuery)->count(),
+                    'activeSrs'    => (int) $areaData->active_srs,
+                    'outletCount'  => (int) $areaData->outlet_count,
+                ];
+            })
+            ->sortByDesc('totalSales')
+            ->values()
+            ->toArray();
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // COMPANY-WISE REPORT
+    // COMPANY REPORT
     // ══════════════════════════════════════════════════════════════════════
 
     public function getCompanyReport(?string $startDate, ?string $endDate): array
     {
-        $start = $startDate ? Carbon::parse($startDate) : Carbon::now()->startOfMonth();
-        $end   = $endDate   ? Carbon::parse($endDate)   : Carbon::now();
+        $start = $startDate
+            ? Carbon::parse($startDate)->startOfDay()
+            : Carbon::now()->startOfMonth();
 
-        // Products এর company field দিয়ে group করা
-        // Order → OrderItem → Product → company
-        $companyData = \DB::table('order_items')
+        $end = $endDate
+            ? Carbon::parse($endDate)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $companyData = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('products', 'products.id', '=', 'order_items.product_id')
             ->whereBetween('orders.created_at', [$start, $end])
             ->where('orders.status', '!=', 'cancelled')
-            ->selectRaw('products.company as company_name, SUM(order_items.total_price) as total_sales, COUNT(DISTINCT orders.id) as orders_count')
+            ->selectRaw('
+                products.company as company_name,
+                SUM(order_items.total) as totalSales,
+                COUNT(DISTINCT orders.id) as ordersCount
+            ')
             ->groupBy('products.company')
-            ->orderByDesc('total_sales')
+            ->orderByDesc('totalSales')
             ->get();
 
-        $grandTotal = $companyData->sum('total_sales');
+        $grandTotal = (float) $companyData->sum('totalSales');
 
-        return $companyData->map(function ($row) use ($grandTotal) {
-            return [
-                'company_name'  => $row->company_name ?? 'Unknown',
-                'total_sales'   => (float) $row->total_sales,
-                'orders_count'  => (int) $row->orders_count,
-                'revenue_share' => $grandTotal > 0
-                    ? round(($row->total_sales / $grandTotal) * 100, 2)
-                    : 0,
-            ];
-        })->toArray();
+        return $companyData
+            ->map(function ($row) use ($grandTotal) {
+
+                return [
+                    'companyName'  => $row->company_name ?? 'Unknown',
+                    'totalSales'   => (float) $row->totalSales,
+                    'ordersCount'  => (int) $row->ordersCount,
+                    'revenueShare' => $grandTotal > 0
+                        ? round(($row->totalSales / $grandTotal) * 100, 2)
+                        : 0,
+                ];
+            })
+            ->values()
+            ->toArray();
     }
 
     // ══════════════════════════════════════════════════════════════════════
     // HELPERS
     // ══════════════════════════════════════════════════════════════════════
 
-    private function getTargetForRange(?int $salesRepId, Carbon $start, Carbon $end): float
-    {
-        $query = QuarterlyTarget::where('target_type', 'sales')
-            ->where('quarter_start_date', '<=', $end->toDateString())
-            ->where('quarter_end_date', '>=', $start->toDateString())
-            ->with(['monthlyTargets.weeklyTargets.dailyTargets' => function ($q) use ($start, $end) {
-                $q->whereBetween('date', [$start->toDateString(), $end->toDateString()]);
-            }]);
+    private function getTargetForRange(
+        ?int $salesRepId,
+        Carbon $start,
+        Carbon $end
+    ): float {
+
+        $query = QuarterlyTarget::query()
+            ->where('target_type', 'sales')
+            ->whereDate('quarter_start_date', '<=', $end)
+            ->whereDate('quarter_end_date', '>=', $start)
+            ->with([
+                'monthlyTargets.weeklyTargets.dailyTargets' => function ($q) use ($start, $end) {
+                    $q->whereBetween('date', [
+                        $start->toDateString(),
+                        $end->toDateString(),
+                    ]);
+                }
+            ]);
 
         if ($salesRepId) {
             $query->where('sales_rep_id', $salesRepId);
         }
 
         return (float) $query->get()->sum(
-            fn($qt) => $qt->monthlyTargets->sum(
-                fn($m) => $m->weeklyTargets->sum(
-                    fn($w) => $w->dailyTargets->sum('target_amount')
+            fn($quarterlyTarget) => $quarterlyTarget->monthlyTargets->sum(
+                fn($monthlyTarget) => $monthlyTarget->weeklyTargets->sum(
+                    fn($weeklyTarget) => $weeklyTarget->dailyTargets->sum('target_amount')
                 )
             )
         );

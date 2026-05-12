@@ -5,6 +5,11 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 namespace App\Http\Controllers\Api\V1;
+use App\Http\Controllers\Controller;
+use App\Services\TargetService;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Carbon\Carbon;
 
 class OutletVisitController extends Controller
 {
@@ -14,7 +19,7 @@ class OutletVisitController extends Controller
         $query = \App\Models\OutletVisit::latest('visited_at');
 
         // SR শুধু নিজেরটা দেখবে
-        if (auth()->user()->role === 'sales_rep') {
+        if (auth()->user()->hasRole('sales_representative')) {
             $query->where('sales_rep_id', auth()->id());
         } elseif ($request->filled('sales_rep_id')) {
             $query->where('sales_rep_id', $request->sales_rep_id);
@@ -34,14 +39,14 @@ class OutletVisitController extends Controller
         $service    = app(TargetService::class);
 
         return response()->json([
-            'daily_target'       => $service->getAchievement($salesRepId, 'daily',     'outlet_visit')['target_amount'],
-            'weekly_target'      => $service->getAchievement($salesRepId, 'weekly',    'outlet_visit')['target_amount'],
-            'monthly_target'     => $service->getAchievement($salesRepId, 'monthly',   'outlet_visit')['target_amount'],
-            'quarterly_target'   => $service->getAchievement($salesRepId, 'quarterly', 'outlet_visit')['target_amount'],
-            'daily_achieved'     => $service->getAchievement($salesRepId, 'daily',     'outlet_visit')['achieved_amount'],
-            'weekly_achieved'    => $service->getAchievement($salesRepId, 'weekly',    'outlet_visit')['achieved_amount'],
-            'monthly_achieved'   => $service->getAchievement($salesRepId, 'monthly',   'outlet_visit')['achieved_amount'],
-            'quarterly_achieved' => $service->getAchievement($salesRepId, 'quarterly', 'outlet_visit')['achieved_amount'],
+            'dailyTarget'       => $service->getAchievement($salesRepId, 'daily',     'outlet_visit')['targetAmount'],
+            'weeklyTarget'      => $service->getAchievement($salesRepId, 'weekly',    'outlet_visit')['targetAmount'],
+            'monthlyTarget'     => $service->getAchievement($salesRepId, 'monthly',   'outlet_visit')['targetAmount'],
+            'quarterlyTarget'   => $service->getAchievement($salesRepId, 'quarterly', 'outlet_visit')['targetAmount'],
+            'dailyAchieved'     => $service->getAchievement($salesRepId, 'daily',     'outlet_visit')['achievedAmount'],
+            'weeklyAchieved'    => $service->getAchievement($salesRepId, 'weekly',    'outlet_visit')['achievedAmount'],
+            'monthlyAchieved'   => $service->getAchievement($salesRepId, 'monthly',   'outlet_visit')['achievedAmount'],
+            'quarterlyAchieved' => $service->getAchievement($salesRepId, 'quarterly', 'outlet_visit')['achievedAmount'],
         ]);
     }
 

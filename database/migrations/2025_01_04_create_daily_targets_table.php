@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('warning_level', ['none', 'amber', 'red'])->default('none');
             $table->timestamps();
 
-            $table->unique('date'); // একদিনে একটিই daily target
+            // $table->unique('date'); // একদিনে একটিই daily target
             $table->index('date');
         });
     }

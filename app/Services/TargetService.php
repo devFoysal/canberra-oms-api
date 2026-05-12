@@ -196,13 +196,15 @@ class TargetService
         $warningLevel = $this->computeWarningLevel($percentage, $period, $date);
 
         return [
-            'target_amount'    => $targetAmount,
-            'achieved_amount'  => $achievedAmount,
+            'targetAmount'    => $targetAmount,
+            'achievedAmount'  => $achievedAmount,
             'percentage'       => $percentage,
             'shortfall'        => $shortfall,
-            'warning_level'    => $warningLevel,
+            'warningLevel'    => $warningLevel,
             'period'           => $period,
             'label'            => $label,
+            'startDate'        => $startDate->toDateString(),
+            'endDate'          => $endDate->toDateString(),
         ];
     }
 
@@ -214,7 +216,7 @@ class TargetService
         return (float) Order::where('sales_rep_id', $salesRepId)
             ->whereBetween('created_at', [$start, $end])
             ->where('status', '!=', 'cancelled')
-            ->sum('total_amount');
+            ->sum('total');
     }
 
     /**
@@ -238,19 +240,24 @@ class TargetService
     ): float {
         return (float) QuarterlyTarget::where('sales_rep_id', $salesRepId)
             ->where('target_type', $targetType)
-            ->where('quarter_start_date', '<=', $start->toDateString())
-            ->where('quarter_end_date', '>=', $end->toDateString())
-            ->with(['monthlyTargets.weeklyTargets.dailyTargets' => function ($q) use ($start, $end) {
-                $q->whereBetween('date', [$start->toDateString(), $end->toDateString()]);
-            }])
+            ->whereDate('quarter_start_date', '<=', $end)
+            ->whereDate('quarter_end_date', '>=', $start)
+            ->with([
+                'monthlyTargets.weeklyTargets.dailyTargets' => function ($q) use ($start, $end) {
+                    $q->whereBetween('date', [
+                        $start->toDateString(),
+                        $end->toDateString()
+                    ]);
+                }
+            ])
             ->get()
-            ->sum(fn($qt) =>
-                $qt->monthlyTargets->sum(fn($m) =>
-                    $m->weeklyTargets->sum(fn($w) =>
-                        $w->dailyTargets->sum('target_amount')
-                    )
-                )
-            );
+            ->sum(function ($qt) {
+                return $qt->monthlyTargets->sum(function ($m) {
+                    return $m->weeklyTargets->sum(function ($w) {
+                        return $w->dailyTargets->sum('target_amount');
+                    });
+                });
+            });
     }
 
     // ══════════════════════════════════════════════════════════════════════

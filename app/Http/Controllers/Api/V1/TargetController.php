@@ -10,6 +10,7 @@ use App\Services\TargetService;
 use App\Models\QuarterlyTarget;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Carbon\Carbon;
 
 class TargetController extends Controller
 {
@@ -29,9 +30,17 @@ class TargetController extends Controller
         }
 
         $targets = $query->get()->map(function ($t) {
-            $t->sales_rep_name    = $t->salesRep?->full_name;
-            $t->achieved_amount   = $t->achieved_amount;
-            $t->achieved_percentage = $t->achieved_percentage;
+            $t->salesRepName    = $t->salesRep?->full_name;
+            $t->achievedAmount   = $t->achieved_amount;
+            $t->achievedPercentage = $t->achieved_percentage;
+            $t->quarterlyAmount = $t->quarterly_amount;
+            $t->targetType = $t->target_type;
+            $t->quarterStartDate = $t->quarterStartDate = !empty($t->quarter_start_date)
+            ? Carbon::parse($t->quarter_start_date)->format('Y-m-d')
+            : null;;
+                    $t->quarterEndDate = $t->quarterEndDate = !empty($t->quarter_end_date)
+            ? Carbon::parse($t->quarter_end_date)->format('Y-m-d')
+            : null;;
             return $t;
         });
 
@@ -102,7 +111,7 @@ class TargetController extends Controller
             salesRepId:  $salesRepId,
             period:      $request->period,
             targetType:  $request->targetType,
-            date:        $request->date,
+            date:        $request->date ?? now()->toDateString(),
         );
 
         return response()->json($result);
