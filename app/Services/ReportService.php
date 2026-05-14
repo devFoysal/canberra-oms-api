@@ -186,21 +186,43 @@ class ReportService
     // ══════════════════════════════════════════════════════════════════════
 
     public function getSalesRepReport(
+        ?int $salesRepId,
         string $period,
         ?string $startDate,
         ?string $endDate
     ): array {
 
-        $start = $startDate
-            ? Carbon::parse($startDate)->startOfDay()
-            : Carbon::now()->startOfMonth();
+        $now = Carbon::now();
 
-        $end = $endDate
-            ? Carbon::parse($endDate)->endOfDay()
-            : Carbon::now()->endOfMonth();
+        // Default range using period
+        if ($startDate && $endDate) {
+            $start = Carbon::parse($startDate)->startOfDay();
+            $end   = Carbon::parse($endDate)->endOfDay();
+        } else {
+            switch ($period) {
+                case 'daily':
+                    $start = $now->copy()->startOfDay();
+                    $end   = $now->copy()->endOfDay();
+                    break;
 
-        $salesReps = User::role('sales_representative')
+                case 'weekly':
+                    $start = $now->copy()->startOfWeek();
+                    $end   = $now->copy()->endOfWeek();
+                    break;
+
+                case 'monthly':
+                default:
+                    $start = $now->copy()->startOfMonth();
+                    $end   = $now->copy()->endOfMonth();
+                    break;
+            }
+        }
+
+        $salesReps = User::role('sales_representative', 'web')
             ->where('status', 'active')
+            ->when($salesRepId, function ($q) use ($salesRepId) {
+                $q->where('id', $salesRepId);
+            })
             ->get();
 
         return $salesReps
@@ -217,7 +239,7 @@ class ReportService
 
                 return [
                     'salesRepId'         => $sr->id,
-                    'salesRepName'       => $sr->name,
+                    'salesRepName'       => $sr->full_name,
                     'totalSales'         => $sales,
                     'targetAmount'       => $target,
                     'achievedPercentage' => $target > 0
@@ -243,15 +265,34 @@ class ReportService
     // AREA REPORT
     // ══════════════════════════════════════════════════════════════════════
 
-    public function getAreaReport(?string $startDate, ?string $endDate): array
+    public function getAreaReport(?int $salesRepId, string $period, ?string $startDate, ?string $endDate): array
     {
-        $start = $startDate
-            ? Carbon::parse($startDate)->startOfDay()
-            : Carbon::now()->startOfMonth();
+        $now = Carbon::now();
 
-        $end = $endDate
-            ? Carbon::parse($endDate)->endOfDay()
-            : Carbon::now()->endOfDay();
+        // Default range using period
+        if ($startDate && $endDate) {
+
+            $start = Carbon::parse($startDate)->startOfDay();
+            $end   = Carbon::parse($endDate)->endOfDay();
+        } else {
+            switch ($period) {
+                case 'daily':
+                    $start = $now->copy()->startOfDay();
+                    $end   = $now->copy()->endOfDay();
+                    break;
+
+                case 'weekly':
+                    $start = $now->copy()->startOfWeek();
+                    $end   = $now->copy()->endOfWeek();
+                    break;
+
+                case 'monthly':
+                default:
+                    $start = $now->copy()->startOfMonth();
+                    $end   = $now->copy()->endOfMonth();
+                    break;
+            }
+        }
 
         $areas = OutletVisit::query()
             ->whereBetween('visited_at', [$start, $end])
@@ -264,11 +305,14 @@ class ReportService
             ->get();
 
         return $areas
-            ->map(function ($areaData) use ($start, $end) {
+            ->map(function ($areaData) use ($start, $end, $salesRepId) {
 
                 $ordersQuery = Order::query()
-                    ->whereHas('customer', function ($q) use ($areaData) {
-                        $q->where('area', $areaData->area);
+                    ->whereHas('customer', function ($q) use ($areaData, $salesRepId) {
+                        $q->where('address', $areaData->area)
+                        ->when($salesRepId, function ($q) use ($salesRepId) {
+                            $q->where('created_by_id', $salesRepId);
+                        });
                     })
                     ->whereBetween('created_at', [$start, $end])
                     ->where('status', '!=', 'cancelled');
@@ -277,7 +321,7 @@ class ReportService
                     'area'         => $areaData->area,
                     'totalSales'   => (float) (clone $ordersQuery)->sum('total'),
                     'ordersCount'  => (clone $ordersQuery)->count(),
-                    'activeSrs'    => (int) $areaData->active_srs,
+                    'activeSRs'    => (int) $areaData->active_srs,
                     'outletCount'  => (int) $areaData->outlet_count,
                 ];
             })

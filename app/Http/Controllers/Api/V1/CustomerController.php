@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 use App\Models\Customer;
+use App\Models\OutletVisit;
 use App\Helpers\{
     FileHelper,
     ResponseHelper
@@ -72,6 +73,21 @@ class CustomerController extends Controller
             }
 
             $customer = Customer::create($customerData);
+
+            $outletData = [
+                'outlet_name'    => $request->name,
+                'area'           => $request->address,
+                'contact_person' => $request->shopName,
+                'contact_phone'  => $request->mobile,
+                'note'           => "",
+                'latitude'       => 0,
+                'longitude'      => 0,
+            ];
+
+            OutletVisit::create(array_merge($outletData, [
+                'sales_rep_id' => (int) $request->assignSalesPerson > 0 ? $request->assignSalesPerson : auth()->id(),
+                'visited_at'   => now(),
+            ]));
 
             return ResponseHelper::success(new CustomerResource($customer), 'Customer created successfully', 201);
 

@@ -312,7 +312,7 @@ class OrderController extends Controller
             ->when($request->status === 'invoiceGenerated', fn ($q) => $q->where('invoice_status', 'generated'))
 
             // Payment Status
-            ->when($request->status === 'paymentPending',fn ($q) => $q->where('payment_status', 'pending')->where('status', '!=', 'cancelled'))
+            ->when($request->status === 'paymentPending',fn ($q) => $q->where('payment_status', 'pending')->where('status', '!=', 'cancelled')->where('status', '!=', 'pending'))
             ->when($request->status === 'paymentPaid', fn ($q) => $q->where('payment_status', 'paid'))
             ->when($request->status === 'paymentPartial', fn ($q) => $q->where('payment_status', 'partial'))
 

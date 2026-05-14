@@ -55,6 +55,9 @@ class SalesRepresentativeController extends Controller
 
             $user = User::create($userData);
 
+            // Assign role
+            $user->assignRole('sales_representative');
+
             $salesRepresentative = null;
 
             $salesRepresentativeData = [
@@ -103,6 +106,9 @@ class SalesRepresentativeController extends Controller
                 'email'         => $request->email,
                 'mobile_number' => $request->mobileNumber,
             ]);
+
+            // Ensure role is always correct
+            $user->syncRoles(['sales_representative']);
 
             // Always ensure sales representative exists
             $salesRepresentative = $user->salesRepresentative()->updateOrCreate(

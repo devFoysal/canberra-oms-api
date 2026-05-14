@@ -19,16 +19,16 @@ class ReportController extends Controller
     {
         $request->validate([
             'period'       => 'required|in:daily,weekly,monthly',
-            'sales_rep_id' => 'nullable|exists:users,id',
-            'start_date'   => 'nullable|date',
-            'end_date'     => 'nullable|date',
+            'salesRepId' => 'nullable|exists:users,id',
+            'startDate'   => 'nullable|date',
+            'endDate'     => 'nullable|date',
         ]);
 
         $data = $this->reportService->getSalesReport(
             $request->period,
-            $request->sales_rep_id,
-            $request->start_date,
-            $request->end_date,
+            $request->salesRepId,
+            $request->startDate,
+            $request->endDate,
         );
 
         return response()->json($data);
@@ -40,9 +40,10 @@ class ReportController extends Controller
         // $this->authorize('viewReports');
 
         $data = $this->reportService->getSalesRepReport(
+            $request->salesRepId,
             $request->input('period', 'monthly'),
-            $request->start_date,
-            $request->end_date,
+            $request->startDate,
+            $request->endDate,
         );
 
         return response()->json($data);
@@ -54,8 +55,10 @@ class ReportController extends Controller
         // $this->authorize('viewReports');
 
         $data = $this->reportService->getAreaReport(
-            $request->start_date,
-            $request->end_date,
+            $request->salesRepId,
+            $request->input('period', 'monthly'),
+            $request->startDate,
+            $request->endDate,
         );
 
         return response()->json($data);
@@ -67,8 +70,8 @@ class ReportController extends Controller
         // $this->authorize('viewReports');
 
         $data = $this->reportService->getCompanyReport(
-            $request->start_date,
-            $request->end_date,
+            $request->startDate,
+            $request->endDate,
         );
 
         return response()->json($data);

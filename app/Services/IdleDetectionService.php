@@ -10,7 +10,7 @@ use Carbon\Carbon;
 
 class IdleDetectionService
 {
-    const IDLE_THRESHOLD_MINUTES = 90;
+    const IDLE_THRESHOLD_MINUTES = 3;
     const ACTIVE_HOURS_START     = 9;   // 9 AM
     const ACTIVE_HOURS_END       = 18;  // 6 PM
 
