@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('sales_rep_id')->constrained('users')->cascadeOnDelete();
             $table->dateTime('start_time');
             $table->dateTime('resolved_time')->nullable();
-            $table->unsignedInteger('duration_minutes')->nullable();
+            $table->bigInteger('duration_minutes')->nullable();
             $table->enum('reason_type', [
                 'traveling',
                 'lunch_prayer',

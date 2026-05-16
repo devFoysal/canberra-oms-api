@@ -388,7 +388,7 @@ class LocationService
 
             if ($isOffline) {
                 // Admin দের notify করো
-                $admins = User::where('role', 'admin')->get();
+                $admins = User::role(['super_admin', 'admin'], 'web')->get();
                 foreach ($admins as $admin) {
                     // তোমার existing notification system use করো
                     // Notification::send($admin, new SROfflineNotification($sr));

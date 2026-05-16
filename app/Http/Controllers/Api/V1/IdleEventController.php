@@ -40,8 +40,8 @@ class IdleEventController extends Controller
     public function log(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'reason_type' => 'required|in:traveling,lunch_prayer,customer_meeting,market_closed,no_response,other',
-            'reason_note' => 'nullable|string|max:500|required_if:reason_type,other',
+            'reasonType' => 'required|in:traveling,lunch_prayer,customer_meeting,market_closed,no_response,other',
+            'reasonNote' => 'nullable|string|max:500|required_if:reason_type,other',
         ]);
 
         $event = $this->idleService->logAndResolve(auth()->id(), $validated);
@@ -55,8 +55,8 @@ class IdleEventController extends Controller
         // $this->authorize('update', $idleEvent);
 
         $validated = $request->validate([
-            'reason_type' => 'required|in:traveling,lunch_prayer,customer_meeting,market_closed,no_response,other',
-            'reason_note' => 'nullable|string|max:500',
+            'reasonType' => 'required|in:traveling,lunch_prayer,customer_meeting,market_closed,no_response,other',
+            'reasonNote' => 'nullable|string|max:500',
         ]);
 
         $idleEvent->update(array_merge($validated, [

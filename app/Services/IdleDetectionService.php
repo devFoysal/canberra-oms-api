@@ -32,8 +32,8 @@ class IdleDetectionService
         }
 
         // সব active SR দের নিয়ে আসো
-        $salesReps = User::where('role', 'sales_rep')
-            ->where('is_active', true)
+        $salesReps = User::role('sales_representative', 'web')
+            ->where('status', 'active')
             ->get();
 
         foreach ($salesReps as $sr) {
@@ -72,7 +72,7 @@ class IdleDetectionService
 
         $minutesSinceLastOrder = Carbon::now()->diffInMinutes($lastOrderTime);
 
-        if ($minutesSinceLastOrder >= self::IDLE_THRESHOLD_MINUTES) {
+        // if ($minutesSinceLastOrder >= self::IDLE_THRESHOLD_MINUTES) {
             // Idle event তৈরি করো
             $idleEvent = IdleEvent::create([
                 'sales_rep_id'     => $sr->id,
@@ -82,8 +82,8 @@ class IdleDetectionService
             ]);
 
             // Push notification পাঠাও
-            dispatch(new SendIdleNotificationJob($sr, $idleEvent));
-        }
+            // dispatch(new SendIdleNotificationJob($sr, $idleEvent));
+        // }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -98,13 +98,13 @@ class IdleDetectionService
             ->first();
 
         if (!$unresolvedIdle) {
-            return ['is_idle' => false];
+            return ['isIdle' => false];
         }
 
         return [
-            'is_idle'          => true,
-            'idle_since'       => $unresolvedIdle->start_time->toIso8601String(),
-            'duration_minutes' => Carbon::now()->diffInMinutes($unresolvedIdle->start_time),
+            'isIdle'          => true,
+            'idleSince'       => $unresolvedIdle->start_time->toIso8601String(),
+            'durationMinutes' => Carbon::now()->diffInMinutes($unresolvedIdle->start_time),
         ];
     }
 
@@ -123,8 +123,8 @@ class IdleDetectionService
         $idleEvent->update([
             'resolved_time'    => Carbon::now(),
             'duration_minutes' => Carbon::now()->diffInMinutes($idleEvent->start_time),
-            'reason_type'      => $data['reason_type'],
-            'reason_note'      => $data['reason_note'] ?? null,
+            'reason_type'      => $data['reasonType'],
+            'reason_note'      => $data['reasonNote'] ?? null,
             'is_resolved'      => true,
         ]);
 
@@ -135,9 +135,9 @@ class IdleDetectionService
     // ADMIN — idle events list
     // ══════════════════════════════════════════════════════════════════════
 
-    public function getEventsForAdmin(array $filters): \Illuminate\Database\Eloquent\Collection
+    public function getEventsForAdmin(array $filters)
     {
-        $query = IdleEvent::with('salesRep:id,name')
+        $query = IdleEvent::with('salesRep:id,full_name')
             ->latest('start_time');
 
         if (!empty($filters['sales_rep_id'])) {
@@ -153,8 +153,17 @@ class IdleDetectionService
         }
 
         return $query->get()->map(function ($event) {
-            $event->sales_rep_name = $event->salesRep?->name;
-            return $event;
+            return [
+                'id' => $event->id,
+                'salesRepId' => $event->salesRep?->id,
+                'salesRepName' => $event->salesRep?->full_name,
+                'reasonNote' => $event->reason_note, // snake_case to camelCase for frontend
+                'reasonType' => $event->reason_type, // snake_case to camelCase for frontend
+                'startTime' => $event->start_time, // snake_case to camelCase for frontend
+                'durationMinutes' => $event->duration_minutes, // snake_case to camelCase for frontend
+                'isResolved' => $event->is_resolved, // snake_case to camelCase for frontend
+                'resolvedTime' => $event->resolved_time, // snake_case to camelCase for frontend
+            ];
         });
     }
 }
