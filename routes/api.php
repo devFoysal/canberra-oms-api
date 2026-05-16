@@ -23,7 +23,8 @@ use App\Http\Controllers\Api\V1\{
     TargetController,
     IdleEventController,
     OutletVisitController,
-    ReportController
+    ReportController,
+    LocationTrackController
 };
 
 // API Version 1 routes
@@ -154,8 +155,12 @@ Route::prefix('v1')->group(function () {
 
         // Location endpoints
         Route::prefix('locations')->group(function () {
-            Route::get('/', [LocationController::class, 'index']);
-            Route::post('/', [LocationController::class, 'store']);
+            // Route::get('/', [LocationController::class, 'index']);
+            // Route::post('/', [LocationController::class, 'store']);
+            Route::post('/points', [LocationTrackController::class, 'batchStore']);
+            Route::get('/live', [LocationTrackController::class, 'live']);
+            Route::get('/reports', [LocationTrackController::class, 'report']);
+            Route::get('/path', [LocationTrackController::class, 'path']);
         });
 
         // ── Targets ───────────────────────────────────────────────────────────

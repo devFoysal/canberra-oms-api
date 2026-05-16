@@ -2,49 +2,37 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LocationSession extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'session_id',
-        'user_id',
-        'device_id',
-        'start_latitude',
-        'start_longitude',
-        'end_latitude',
-        'end_longitude',
+        'sales_rep_id',
+        'date',
         'start_time',
         'end_time',
-        'total_distance',
-        'max_speed',
-        'avg_speed',
-        'duration',
-        'points_count',
-        'device_info',
+        'total_active_minutes',
+        'total_inactive_minutes',
+        'last_seen',
+        'is_online',
+        'battery_level',
+        'battery_charging',
+        'activities',       // JSON array of area activities
     ];
 
     protected $casts = [
-        'start_time' => 'datetime',
-        'end_time' => 'datetime',
-        'device_info' => 'array',
-        'total_distance' => 'float',
-        'max_speed' => 'float',
-        'avg_speed' => 'float',
+        'date'                   => 'date',
+        'start_time'             => 'datetime',
+        'end_time'               => 'datetime',
+        'last_seen'              => 'datetime',
+        'is_online'              => 'boolean',
+        'battery_charging'       => 'boolean',
+        'activities'             => 'array',
     ];
 
-    public function user(): BelongsTo
+    public function salesRep(): BelongsTo
     {
-        return $this->belongsTo(User::class);
-    }
-
-    public function points(): HasMany
-    {
-        return $this->hasMany(LocationPoint::class, 'session_id', 'session_id');
+        return $this->belongsTo(User::class, 'sales_rep_id');
     }
 }

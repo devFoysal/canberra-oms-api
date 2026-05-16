@@ -28,6 +28,9 @@ return new class extends Migration
             $table->timestamp('last_login_at')->nullable();
             $table->string('email_verification_token')->nullable();
             $table->string('mobile_verification_token')->nullable();
+            // FCM token এবং device type নতুন column
+            $table->string('fcm_token')->nullable();
+            $table->string('device_type')->nullable();
             $table->enum('status', ['active','inactive','suspended','pending','banned'])->default('active');
             $table->timestamps();
         });
