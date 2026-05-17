@@ -286,15 +286,16 @@ class OrderController extends Controller
         }
     }
 
-    private function checkAndUpdatePaymentStatus(){
+    private function checkAndUpdatePaymentStatus(): void
+    {
         Order::query()
             ->from('orders as o')
 
-            // Paid amount subquery
+            // Paid amount
             ->leftJoinSub(
                 DB::table('invoices as i')
                     ->leftJoin('payments as p', 'p.invoice_id', '=', 'i.id')
-                    ->selectRaw('i.order_id, SUM(p.amount_paid) as paid_amount')
+                    ->selectRaw('i.order_id, COALESCE(SUM(p.amount_paid), 0) as paid_amount')
                     ->groupBy('i.order_id'),
                 'pay',
                 'pay.order_id',
@@ -302,15 +303,22 @@ class OrderController extends Controller
                 'o.id'
             )
 
-            // Discount subquery (FIXED - no extra order join)
+            // Discount amount (FIXED: percentage + fixed logic)
             ->leftJoinSub(
                 DB::table('discounts as d')
-                    ->selectRaw('d.order_id, SUM(
-                        CASE
-                            WHEN d.type = "percentage" THEN d.value
-                            ELSE d.value
-                        END
-                    ) as discount_amount')
+                    ->join('orders as o2', 'o2.id', '=', 'd.order_id')
+                    ->selectRaw("
+                        d.order_id,
+                        COALESCE(
+                            SUM(
+                                CASE
+                                    WHEN d.type = 'percentage'
+                                        THEN (o2.total * d.value) / 100
+                                    ELSE d.value
+                                END
+                            ), 0
+                        ) as discount_amount
+                    ")
                     ->groupBy('d.order_id'),
                 'dis',
                 'dis.order_id',
@@ -318,12 +326,24 @@ class OrderController extends Controller
                 'o.id'
             )
 
+            // Only partial orders
+            ->where('o.payment_status', 'partial')
+
+            // Safe comparison (float-safe)
             ->whereRaw('
-                (o.total - IFNULL(dis.discount_amount, 0) + o.tax)
-                = IFNULL(pay.paid_amount, 0)
+                ROUND(
+                    COALESCE(pay.paid_amount, 0), 2
+                ) >= ROUND(
+                    GREATEST(
+                        0,
+                        o.total - COALESCE(dis.discount_amount, 0) + COALESCE(o.tax, 0)
+                    ),
+                    2
+                )
             ')
+
             ->update([
-                'payment_status' => 'paid'
+                'payment_status' => 'paid',
             ]);
     }
 
