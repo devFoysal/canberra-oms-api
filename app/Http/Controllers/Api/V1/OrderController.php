@@ -19,7 +19,8 @@ use App\Http\Requests\Api\V1\Order\{
     ProductOrderRequest,
     EditOrderRequest,
     AddMoreProductRequest,
-    RemoveOrderItemRequest
+    RemoveOrderItemRequest,
+    CancelOrderRequest
 };
 
 use App\Http\Resources\Api\V1\Order\{
@@ -45,6 +46,8 @@ class OrderController extends Controller
         $summary = $this->buildSummary($request);
         $totalAmount = $this->buildTotalAmount($request);
         $totalPartialDueAmount = $this->buildTotalDueAmount($request);
+
+        $this->checkAndUpdatePaymentStatus();
 
         $dataCount = [
             "counts" => $summary,
@@ -202,12 +205,13 @@ class OrderController extends Controller
         return ResponseHelper::success([],'Order deleted successfully');
     }
 
-    public function cancelOrder($id){
+    public function cancelOrder($id, CancelOrderRequest $request){
         $order = Order::find($id);
         if (!$order) return ResponseHelper::error('Order not found', 404);
 
         try {
             $order->status = 'cancelled';
+            $order->note = $request->note;
             $order->update();
 
             $order->load(['customer', 'salesRep', 'items.product:id,thumbnail']);
@@ -282,6 +286,47 @@ class OrderController extends Controller
         }
     }
 
+    private function checkAndUpdatePaymentStatus(){
+        Order::query()
+            ->from('orders as o')
+
+            // Paid amount subquery
+            ->leftJoinSub(
+                DB::table('invoices as i')
+                    ->leftJoin('payments as p', 'p.invoice_id', '=', 'i.id')
+                    ->selectRaw('i.order_id, SUM(p.amount_paid) as paid_amount')
+                    ->groupBy('i.order_id'),
+                'pay',
+                'pay.order_id',
+                '=',
+                'o.id'
+            )
+
+            // Discount subquery (FIXED - no extra order join)
+            ->leftJoinSub(
+                DB::table('discounts as d')
+                    ->selectRaw('d.order_id, SUM(
+                        CASE
+                            WHEN d.type = "percentage" THEN d.value
+                            ELSE d.value
+                        END
+                    ) as discount_amount')
+                    ->groupBy('d.order_id'),
+                'dis',
+                'dis.order_id',
+                '=',
+                'o.id'
+            )
+
+            ->whereRaw('
+                (o.total - IFNULL(dis.discount_amount, 0) + o.tax)
+                = IFNULL(pay.paid_amount, 0)
+            ')
+            ->update([
+                'payment_status' => 'paid'
+            ]);
+    }
+
     private function baseQuery(Request $request)
     {
         return Order::query()
@@ -344,7 +389,12 @@ class OrderController extends Controller
 
     private function buildSummary(Request $request)
     {
-        $query = $this->baseQuery($request)->getQuery();
+
+        $query = Order::query();
+
+        if(auth()->user()->hasRole('sales_representative')){
+            $query->where('sales_rep_id', auth()->id());
+        }
 
         // Get aggregated stats
         $stats = $query->selectRaw("

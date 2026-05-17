@@ -23,6 +23,7 @@ return new class extends Migration
             $table->foreignId('sales_rep_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('modified_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->enum('status', ['pending', 'confirmed', 'ready_to_ship', 'shipped', 'delivered', 'cancelled'])->default('pending');
+            $table->longText('note')->nullable();
             $table->timestamps();
         });
     }

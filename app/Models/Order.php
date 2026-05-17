@@ -19,6 +19,7 @@ class Order extends Model
         'tax',
         'total',
         'status',
+        'note',
         'invoice_number',
         'payment_status',
     ];
@@ -42,7 +43,6 @@ class Order extends Model
             }
         });
     }
-
 
     // Relationship to Customer
     public function customer()

@@ -82,6 +82,7 @@ class OrderCollectionResource extends JsonResource
             ? PaymentResource::collection($this->invoice->payments)
             : [],
             'shipping' => new ShippingResource($this->shipping),
+            'note' => $this->note,
         ];
     }
 }

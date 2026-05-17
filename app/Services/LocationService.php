@@ -264,9 +264,6 @@ class LocationService
     {
         $salesReps = User::role('sales_representative', 'web')
             ->where('status', 'active')
-            // ->when($salesRepId, function ($q) use ($salesRepId) {
-            //     $q->where('id', $salesRepId);
-            // })
             ->get();
 
         return $salesReps->map(function (User $sr) {
