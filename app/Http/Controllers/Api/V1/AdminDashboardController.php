@@ -38,6 +38,7 @@ class AdminDashboardController extends Controller
         $delivered     = Order::where('status', 'delivered')->count();
         $readyToShip   = Order::where('status', 'ready_to_ship')->count();
         $todayOrders   = Order::whereDate('created_at', $today)->count();
+        $todaySales   = Order::whereDate('created_at', $today)->sum('total');
 
         // Last month orders
         $totalOrdersLastMonth = Order::whereBetween('created_at', [$startLastMonth, $endLastMonth])->count();
@@ -152,6 +153,7 @@ class AdminDashboardController extends Controller
             'ready_to_ship'                   => $readyToShip,
             'delivered_orders'                => $delivered,
             'today_orders'                    => $todayOrders,
+            'today_sales'                     => $todaySales,
             'total_orders_change'             => $ordersChange,    // % vs last month
 
             'active_sales_reps'               => $activeReps,
