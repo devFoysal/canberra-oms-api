@@ -9,4 +9,11 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 
-Schedule::command('app:check-idle')->everyMinute();
+Schedule::command('app:check-idle')->everyFiveMinutes();
+
+Schedule::command('payment:warnings')
+    ->dailyAt('08:00')
+    ->withoutOverlapping()
+    ->appendOutputTo(
+        storage_path('logs/payment-warnings.log')
+    );

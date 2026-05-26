@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\OrderItem;
 use App\Models\Shipping;
+use App\Models\PaymentWarning;
 
 class Order extends Model
 {
@@ -90,5 +91,10 @@ class Order extends Model
     public function discounts()
     {
         return $this->hasMany(Discount::class, 'order_id', 'id');
+    }
+
+    public function paymentWarnings()
+    {
+        return $this->hasMany(\App\Models\PaymentWarning::class);
     }
 }

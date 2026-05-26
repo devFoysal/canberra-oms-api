@@ -383,6 +383,7 @@ class OrderController extends Controller
 
             // Waiting Approval
             ->when($request->status === 'waitingApproval', function ($q) {
+                $q->where('payment_status', 'paid');
                 $q->whereHas('payments', fn ($p) => $p->where('status', 'pending'));
             })
 

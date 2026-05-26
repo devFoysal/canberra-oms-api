@@ -24,7 +24,8 @@ use App\Http\Controllers\Api\V1\{
     IdleEventController,
     OutletVisitController,
     ReportController,
-    LocationTrackController
+    LocationTrackController,
+    PaymentWarningController
 };
 
 // API Version 1 routes
@@ -140,6 +141,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [PaymentController::class, 'store']);
             Route::get('/', [PaymentController::class, 'index']);
             Route::post('/{id}/status', [PaymentController::class, 'updateStatus']);
+        });
+
+        // Payment Warnings
+        Route::prefix('payment-warnings')->group(function () {
+            Route::get('/',            [PaymentWarningController::class, 'index']);
+            Route::get('/summary',     [PaymentWarningController::class, 'summary']);
+            Route::post('/{id}/note',  [PaymentWarningController::class, 'addNote']);
+            Route::post('/{id}/resolve', [PaymentWarningController::class, 'resolve']);
+            Route::post('/generate',   [PaymentWarningController::class, 'generate']); // admin only
         });
 
          // Shipping routes
