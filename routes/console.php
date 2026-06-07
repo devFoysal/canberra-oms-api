@@ -17,3 +17,8 @@ Schedule::command('payment:warnings')
     ->appendOutputTo(
         storage_path('logs/payment-warnings.log')
     );
+
+Schedule::command('location:clean')
+    ->dailyAt('23:59')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/location-clean.log'));

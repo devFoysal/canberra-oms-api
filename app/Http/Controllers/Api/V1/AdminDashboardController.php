@@ -120,8 +120,8 @@ class AdminDashboardController extends Controller
         // Collection rate today
         $todayInvoiceTotal = Invoice::whereDate('created_at', $today)->sum('total');
         $collectionRateToday = $todayInvoiceTotal > 0
-            ? round(($paymentCollectedToday / $todayInvoiceTotal) * 100, 2)
-            : 0;
+        ? min(100, round(($paymentCollectedToday / $todayInvoiceTotal) * 100, 2))
+        : 0;
 
         // -------------------------
         // Pending Collections Orders
