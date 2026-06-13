@@ -69,6 +69,8 @@ class TargetController extends Controller
     public function update(Request $request, QuarterlyTarget $target): JsonResponse
     {
         $validated = $request->validate([
+            'salesRepId'        => 'required|exists:users,id',
+            'targetType'         => 'required|in:sales,outlet_visit',
             'quarterlyAmount'    => 'sometimes|numeric|min:1',
             'quarterStartDate'  => 'sometimes|date',
             'quarterEndDate'    => 'sometimes|date',
