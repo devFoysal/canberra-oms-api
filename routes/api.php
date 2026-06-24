@@ -17,7 +17,6 @@ use App\Http\Controllers\Api\V1\{
     ShippingController,
     AdminDashboardController,
     SRDashboardController,
-    LocationController,
 
     // Targets
     TargetController,
@@ -28,8 +27,14 @@ use App\Http\Controllers\Api\V1\{
     PaymentWarningController
 };
 
+use App\Http\Controllers\{
+    SiteSettingController,
+};
+
 // API Version 1 routes
 Route::prefix('v1')->group(function () {
+
+    Route::get('/site-setting', [SiteSettingController::class, 'isSuspended']);
 
     // Public routes
     Route::prefix('auth')->group(function () {
@@ -165,8 +170,6 @@ Route::prefix('v1')->group(function () {
 
         // Location endpoints
         Route::prefix('locations')->group(function () {
-            // Route::get('/', [LocationController::class, 'index']);
-            // Route::post('/', [LocationController::class, 'store']);
             Route::post('/points', [LocationTrackController::class, 'batchStore']);
             Route::get('/live', [LocationTrackController::class, 'live']);
             Route::get('/reports', [LocationTrackController::class, 'report']);
